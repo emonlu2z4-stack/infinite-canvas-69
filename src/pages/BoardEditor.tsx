@@ -28,7 +28,7 @@ const BoardEditor = () => {
     screenToCanvas, zoom, pan, resetZoom,
     canUndo, canRedo,
     selectedElementId, setSelectedElementId,
-    moveElement, commitMove,
+    moveElement, commitMove, deleteSelected,
   } = useCanvas();
 
   const [textInputPos, setTextInputPos] = useState<Point | null>(null);
@@ -130,6 +130,7 @@ const BoardEditor = () => {
     onUndo: undo,
     onRedo: redo,
     onImageImport: handleImageImport,
+    onDeleteSelected: deleteSelected,
   });
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

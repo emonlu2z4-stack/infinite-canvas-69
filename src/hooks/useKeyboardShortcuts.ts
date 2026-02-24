@@ -6,9 +6,10 @@ interface UseKeyboardShortcutsProps {
   onUndo: () => void;
   onRedo: () => void;
   onImageImport?: () => void;
+  onDeleteSelected?: () => void;
 }
 
-export function useKeyboardShortcuts({ onToolChange, onUndo, onRedo, onImageImport }: UseKeyboardShortcutsProps) {
+export function useKeyboardShortcuts({ onToolChange, onUndo, onRedo, onImageImport, onDeleteSelected }: UseKeyboardShortcutsProps) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // Don't trigger shortcuts when typing in inputs
@@ -42,9 +43,14 @@ export function useKeyboardShortcuts({ onToolChange, onUndo, onRedo, onImageImpo
       if (!e.metaKey && !e.ctrlKey && !e.altKey && key === 'i') {
         onImageImport?.();
       }
+
+      if ((key === 'delete' || key === 'backspace') && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        onDeleteSelected?.();
+      }
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onToolChange, onUndo, onRedo, onImageImport]);
+  }, [onToolChange, onUndo, onRedo, onImageImport, onDeleteSelected]);
 }
