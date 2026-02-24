@@ -35,6 +35,7 @@ const BoardEditor = () => {
   const [loaded, setLoaded] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingImagePos = useRef<Point | null>(null);
 
   // Load board
   useEffect(() => {
@@ -110,6 +111,12 @@ const BoardEditor = () => {
   }, [loadImageFile]);
 
   const handleImageImport = useCallback(() => {
+    pendingImagePos.current = null;
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleImageAdd = useCallback((pos: Point) => {
+    pendingImagePos.current = pos;
     fileInputRef.current?.click();
   }, []);
 
@@ -123,12 +130,13 @@ const BoardEditor = () => {
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const center = screenToCanvas(window.innerWidth / 2, window.innerHeight / 2);
+    const pos = pendingImagePos.current ?? screenToCanvas(window.innerWidth / 2, window.innerHeight / 2);
     Array.from(files).forEach((file, i) => {
       if (file.type.startsWith('image/')) {
-        loadImageFile(file, { x: center.x + i * 20, y: center.y + i * 20 });
+        loadImageFile(file, { x: pos.x + i * 20, y: pos.y + i * 20 });
       }
     });
+    pendingImagePos.current = null;
     e.target.value = '';
   }, [loadImageFile, screenToCanvas]);
 
@@ -229,8 +237,8 @@ const BoardEditor = () => {
         onTextAdd={handleTextAdd}
         onStickyAdd={handleStickyAdd}
         onImageDrop={handleImageDrop}
+        onImageAdd={handleImageAdd}
       />
-
       {textInputPos && (
         <TextInput
           position={textInputPos}

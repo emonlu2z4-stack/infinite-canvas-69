@@ -16,12 +16,13 @@ interface WhiteboardCanvasProps {
   onTextAdd?: (position: Point) => void;
   onStickyAdd?: (position: Point) => void;
   onImageDrop?: (file: File, position: Point) => void;
+  onImageAdd?: (position: Point) => void;
 }
 
 export default function WhiteboardCanvas({
   elements, activeTool, color, brushSize,
   camera, onAddElement, onEraseAt, onZoom, onPan,
-  screenToCanvas, onTextAdd, onStickyAdd, onImageDrop,
+  screenToCanvas, onTextAdd, onStickyAdd, onImageDrop, onImageAdd,
 }: WhiteboardCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const containerRef = useRef<HTMLDivElement>(null!);
@@ -80,6 +81,10 @@ export default function WhiteboardCanvas({
     }
     if (activeTool === 'sticky') {
       onStickyAdd?.(point);
+      return;
+    }
+    if (activeTool === 'image') {
+      onImageAdd?.(point);
       return;
     }
 
@@ -165,7 +170,8 @@ export default function WhiteboardCanvas({
 
   const cursorClass = activeTool === 'select' ? 'cursor-grab' :
     activeTool === 'eraser' ? 'cursor-crosshair' :
-    activeTool === 'text' ? 'cursor-text' : 'cursor-crosshair';
+    activeTool === 'text' ? 'cursor-text' :
+    activeTool === 'image' ? 'cursor-copy' : 'cursor-crosshair';
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -232,6 +238,7 @@ export default function WhiteboardCanvas({
 
       if (activeTool === 'text') { onTextAdd?.(point); return; }
       if (activeTool === 'sticky') { onStickyAdd?.(point); return; }
+      if (activeTool === 'image') { onImageAdd?.(point); return; }
 
       if (activeTool === 'pen' || activeTool === 'highlighter') {
         const stroke: Stroke = {
