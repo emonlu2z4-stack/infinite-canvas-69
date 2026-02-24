@@ -27,6 +27,8 @@ const BoardEditor = () => {
     addElement, eraseAt, undo, redo,
     screenToCanvas, zoom, pan, resetZoom,
     canUndo, canRedo,
+    selectedElementId, setSelectedElementId,
+    moveElement, commitMove,
   } = useCanvas();
 
   const [textInputPos, setTextInputPos] = useState<Point | null>(null);
@@ -100,11 +102,14 @@ const BoardEditor = () => {
           naturalHeight: img.height,
         };
         addElement(imageEl);
+        // Auto-select the uploaded image and switch to select tool
+        setSelectedElementId(imageEl.id);
+        setActiveTool('select');
       };
       img.src = src;
     };
     reader.readAsDataURL(file);
-  }, [addElement]);
+  }, [addElement, setSelectedElementId, setActiveTool]);
 
   const handleImageDrop = useCallback((file: File, position: Point) => {
     loadImageFile(file, position);
@@ -238,6 +243,10 @@ const BoardEditor = () => {
         onStickyAdd={handleStickyAdd}
         onImageDrop={handleImageDrop}
         onImageAdd={handleImageAdd}
+        selectedElementId={selectedElementId}
+        onSelectElement={setSelectedElementId}
+        onMoveElement={moveElement}
+        onCommitMove={commitMove}
       />
       {textInputPos && (
         <TextInput

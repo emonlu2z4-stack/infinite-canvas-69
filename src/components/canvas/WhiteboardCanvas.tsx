@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { useCanvasRenderer } from './CanvasRenderer';
+import { useCanvasRenderer, getElementBounds } from './CanvasRenderer';
 import type { CanvasElement, Point, Stroke, ShapeElement, ImageElement, Tool } from '@/types/canvas';
 
 interface WhiteboardCanvasProps {
@@ -17,12 +17,17 @@ interface WhiteboardCanvasProps {
   onStickyAdd?: (position: Point) => void;
   onImageDrop?: (file: File, position: Point) => void;
   onImageAdd?: (position: Point) => void;
+  selectedElementId?: string | null;
+  onSelectElement?: (id: string | null) => void;
+  onMoveElement?: (id: string, dx: number, dy: number) => void;
+  onCommitMove?: () => void;
 }
 
 export default function WhiteboardCanvas({
   elements, activeTool, color, brushSize,
   camera, onAddElement, onEraseAt, onZoom, onPan,
   screenToCanvas, onTextAdd, onStickyAdd, onImageDrop, onImageAdd,
+  selectedElementId, onSelectElement, onMoveElement, onCommitMove,
 }: WhiteboardCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const containerRef = useRef<HTMLDivElement>(null!);
@@ -33,6 +38,8 @@ export default function WhiteboardCanvas({
   const [currentShape, setCurrentShape] = useState<ShapeElement | null>(null);
   const lastPanPos = useRef<Point>({ x: 0, y: 0 });
   const [isDragOver, setIsDragOver] = useState(false);
+  const isDraggingElement = useRef(false);
+  const dragLastPos = useRef<Point>({ x: 0, y: 0 });
   const lastTouchDist = useRef<number>(0);
   const lastTouchCenter = useRef<Point>({ x: 0, y: 0 });
   const touchCount = useRef(0);
@@ -49,6 +56,7 @@ export default function WhiteboardCanvas({
     canvasRef, elements, camera,
     width: size.width, height: size.height,
     activeElement,
+    selectedElementId,
   });
 
   const getCanvasPointFromXY = useCallback((clientX: number, clientY: number) => {
@@ -63,9 +71,24 @@ export default function WhiteboardCanvas({
     return getCanvasPointFromXY(clientX, clientY);
   }, [getCanvasPointFromXY]);
 
+  const hitTestElement = useCallback((point: Point): CanvasElement | null => {
+    // Iterate in reverse so topmost elements are hit first
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i];
+      const bounds = getElementBounds(el);
+      if (!bounds) continue;
+      const pad = 8;
+      if (point.x >= bounds.x - pad && point.x <= bounds.x + bounds.w + pad &&
+          point.y >= bounds.y - pad && point.y <= bounds.y + bounds.h + pad) {
+        return el;
+      }
+    }
+    return null;
+  }, [elements]);
+
   const handlePointerDown = useCallback((e: React.MouseEvent) => {
-    // Middle mouse or space+click = pan
-    if (e.button === 1 || (e.button === 0 && activeTool === 'select')) {
+    // Middle mouse = pan
+    if (e.button === 1) {
       setIsPanning(true);
       lastPanPos.current = { x: e.clientX, y: e.clientY };
       return;
@@ -74,6 +97,23 @@ export default function WhiteboardCanvas({
     if (e.button !== 0) return;
 
     const point = getCanvasPoint(e);
+
+    // Select tool: hit test for element selection & dragging
+    if (activeTool === 'select') {
+      const hit = hitTestElement(point);
+      if (hit) {
+        onSelectElement?.(hit.id);
+        isDraggingElement.current = true;
+        dragLastPos.current = point;
+      } else {
+        onSelectElement?.(null);
+        // Pan if clicking empty space
+        setIsPanning(true);
+        lastPanPos.current = { x: e.clientX, y: e.clientY };
+      }
+      return;
+    }
+
 
     if (activeTool === 'text') {
       e.preventDefault();
@@ -120,7 +160,7 @@ export default function WhiteboardCanvas({
       setCurrentShape(shape);
       setIsDrawing(true);
     }
-  }, [activeTool, color, brushSize, getCanvasPoint, onEraseAt, onTextAdd, onStickyAdd]);
+  }, [activeTool, color, brushSize, getCanvasPoint, onEraseAt, onTextAdd, onStickyAdd, hitTestElement, onSelectElement]);
 
   const handlePointerMove = useCallback((e: React.MouseEvent) => {
     if (isPanning) {
@@ -128,6 +168,15 @@ export default function WhiteboardCanvas({
       const dy = e.clientY - lastPanPos.current.y;
       lastPanPos.current = { x: e.clientX, y: e.clientY };
       onPan(dx, dy);
+      return;
+    }
+
+    if (isDraggingElement.current && selectedElementId) {
+      const point = getCanvasPoint(e);
+      const dx = point.x - dragLastPos.current.x;
+      const dy = point.y - dragLastPos.current.y;
+      dragLastPos.current = point;
+      onMoveElement?.(selectedElementId, dx, dy);
       return;
     }
 
@@ -143,9 +192,14 @@ export default function WhiteboardCanvas({
     if (activeTool === 'eraser') {
       onEraseAt(point, brushSize * 3);
     }
-  }, [isPanning, isDrawing, currentStroke, currentShape, activeTool, brushSize, getCanvasPoint, onPan, onEraseAt]);
+  }, [isPanning, isDrawing, currentStroke, currentShape, activeTool, brushSize, getCanvasPoint, onPan, onEraseAt, selectedElementId, onMoveElement]);
 
   const handlePointerUp = useCallback(() => {
+    if (isDraggingElement.current) {
+      isDraggingElement.current = false;
+      onCommitMove?.();
+      return;
+    }
     if (isPanning) {
       setIsPanning(false);
       return;
@@ -159,7 +213,7 @@ export default function WhiteboardCanvas({
     setCurrentStroke(null);
     setCurrentShape(null);
     setIsDrawing(false);
-  }, [isPanning, currentStroke, currentShape, onAddElement]);
+  }, [isPanning, currentStroke, currentShape, onAddElement, onCommitMove]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -170,7 +224,7 @@ export default function WhiteboardCanvas({
     }
   }, [onZoom, onPan]);
 
-  const cursorClass = activeTool === 'select' ? 'cursor-grab' :
+  const cursorClass = activeTool === 'select' ? (isDraggingElement.current ? 'cursor-grabbing' : 'cursor-grab') :
     activeTool === 'eraser' ? 'cursor-crosshair' :
     activeTool === 'text' ? 'cursor-text' :
     activeTool === 'image' ? 'cursor-copy' : 'cursor-crosshair';
