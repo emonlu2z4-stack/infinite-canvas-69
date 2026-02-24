@@ -10,6 +10,7 @@ import { getBoard, saveBoard, updateBoardThumbnail } from '@/lib/boardStorage';
 import { exportAsPNG, exportAsPDF, generateThumbnail } from '@/lib/exportUtils';
 import type { Point, TextElement, StickyNote } from '@/types/canvas';
 import { ArrowLeft, Download, Save } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
@@ -119,6 +120,7 @@ const BoardEditor = () => {
 
       {/* Top-right: save + export */}
       <div className="fixed top-4 right-4 z-50 flex items-center gap-1">
+        <ThemeToggle className="bg-toolbar border border-toolbar-border text-toolbar-foreground hover:bg-toolbar-hover toolbar-shadow" />
         <Tooltip>
           <TooltipTrigger asChild>
             <button

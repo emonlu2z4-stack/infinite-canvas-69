@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, MoreVertical, Search, LayoutGrid } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 import { listBoards, createBoard, renameBoard, deleteBoard } from '@/lib/boardStorage';
 import type { BoardMeta } from '@/types/canvas';
 import {
@@ -67,10 +68,13 @@ export default function Home() {
               <p className="text-xs text-muted-foreground">Collaborative Whiteboard</p>
             </div>
           </div>
-          <Button onClick={handleCreate} className="gap-2">
-            <Plus size={16} />
-            New Board
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="text-muted-foreground hover:bg-muted" />
+            <Button onClick={handleCreate} className="gap-2">
+              <Plus size={16} />
+              New Board
+            </Button>
+          </div>
         </div>
       </header>
 
