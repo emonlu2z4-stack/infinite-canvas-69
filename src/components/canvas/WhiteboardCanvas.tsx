@@ -32,6 +32,9 @@ export default function WhiteboardCanvas({
   const [currentShape, setCurrentShape] = useState<ShapeElement | null>(null);
   const lastPanPos = useRef<Point>({ x: 0, y: 0 });
   const [isDragOver, setIsDragOver] = useState(false);
+  const lastTouchDist = useRef<number>(0);
+  const lastTouchCenter = useRef<Point>({ x: 0, y: 0 });
+  const touchCount = useRef(0);
 
   useEffect(() => {
     const handleResize = () => setSize({ width: window.innerWidth, height: window.innerHeight });
@@ -47,19 +50,17 @@ export default function WhiteboardCanvas({
     activeElement,
   });
 
-  const getCanvasPoint = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+  const getCanvasPointFromXY = useCallback((clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     return screenToCanvas(clientX - rect.left, clientY - rect.top);
   }, [screenToCanvas]);
 
-  const getScreenPoint = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+  const getCanvasPoint = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    return { x: clientX, y: clientY };
-  }, []);
+    return getCanvasPointFromXY(clientX, clientY);
+  }, [getCanvasPointFromXY]);
 
   const handlePointerDown = useCallback((e: React.MouseEvent) => {
     // Middle mouse or space+click = pan
@@ -191,6 +192,158 @@ export default function WhiteboardCanvas({
     });
   }, [screenToCanvas, onImageDrop]);
 
+  // Touch helpers
+  const getTouchDist = (touches: React.TouchList) => {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  };
+
+  const getTouchCenter = (touches: React.TouchList): Point => ({
+    x: (touches[0].clientX + touches[1].clientX) / 2,
+    y: (touches[0].clientY + touches[1].clientY) / 2,
+  });
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    touchCount.current = e.touches.length;
+
+    if (e.touches.length === 2) {
+      // Two-finger: start pinch/pan — cancel any drawing
+      setCurrentStroke(null);
+      setCurrentShape(null);
+      setIsDrawing(false);
+      lastTouchDist.current = getTouchDist(e.touches);
+      lastTouchCenter.current = getTouchCenter(e.touches);
+      setIsPanning(true);
+      return;
+    }
+
+    if (e.touches.length === 1) {
+      // Single finger: draw or pan depending on tool
+      const t = e.touches[0];
+      if (activeTool === 'select') {
+        setIsPanning(true);
+        lastPanPos.current = { x: t.clientX, y: t.clientY };
+        return;
+      }
+
+      const point = getCanvasPointFromXY(t.clientX, t.clientY);
+
+      if (activeTool === 'text') { onTextAdd?.(point); return; }
+      if (activeTool === 'sticky') { onStickyAdd?.(point); return; }
+
+      if (activeTool === 'pen' || activeTool === 'highlighter') {
+        const stroke: Stroke = {
+          id: crypto.randomUUID(),
+          type: activeTool,
+          points: [point],
+          color,
+          size: activeTool === 'highlighter' ? brushSize * 3 : brushSize,
+          opacity: activeTool === 'highlighter' ? 0.4 : 1,
+        };
+        setCurrentStroke(stroke);
+        setIsDrawing(true);
+      }
+
+      if (activeTool === 'eraser') {
+        setIsDrawing(true);
+        onEraseAt(point, brushSize * 3);
+      }
+
+      if (['rectangle', 'circle', 'arrow', 'line'].includes(activeTool)) {
+        const shape: ShapeElement = {
+          id: crypto.randomUUID(),
+          type: activeTool as ShapeElement['type'],
+          start: point,
+          end: point,
+          color,
+          size: brushSize,
+        };
+        setCurrentShape(shape);
+        setIsDrawing(true);
+      }
+    }
+  }, [activeTool, color, brushSize, getCanvasPointFromXY, onEraseAt, onTextAdd, onStickyAdd]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+
+    if (e.touches.length === 2) {
+      // Pinch zoom + two-finger pan
+      const dist = getTouchDist(e.touches);
+      const center = getTouchCenter(e.touches);
+
+      if (lastTouchDist.current > 0) {
+        const delta = lastTouchDist.current - dist;
+        onZoom(delta, center.x, center.y);
+      }
+
+      const dx = center.x - lastTouchCenter.current.x;
+      const dy = center.y - lastTouchCenter.current.y;
+      onPan(dx, dy);
+
+      lastTouchDist.current = dist;
+      lastTouchCenter.current = center;
+      return;
+    }
+
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+
+      if (isPanning) {
+        const dx = t.clientX - lastPanPos.current.x;
+        const dy = t.clientY - lastPanPos.current.y;
+        lastPanPos.current = { x: t.clientX, y: t.clientY };
+        onPan(dx, dy);
+        return;
+      }
+
+      if (!isDrawing) return;
+      const point = getCanvasPointFromXY(t.clientX, t.clientY);
+
+      if (currentStroke) {
+        setCurrentStroke(prev => prev ? { ...prev, points: [...prev.points, point] } : null);
+      }
+      if (currentShape) {
+        setCurrentShape(prev => prev ? { ...prev, end: point } : null);
+      }
+      if (activeTool === 'eraser') {
+        onEraseAt(point, brushSize * 3);
+      }
+    }
+  }, [isPanning, isDrawing, currentStroke, currentShape, activeTool, brushSize, getCanvasPointFromXY, onPan, onZoom, onEraseAt]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 0) {
+      // All fingers lifted
+      if (touchCount.current <= 1) {
+        // Was single-finger interaction
+        if (isPanning) {
+          setIsPanning(false);
+        } else {
+          if (currentStroke && currentStroke.points.length > 1) {
+            onAddElement(currentStroke);
+          }
+          if (currentShape) {
+            onAddElement(currentShape);
+          }
+          setCurrentStroke(null);
+          setCurrentShape(null);
+          setIsDrawing(false);
+        }
+      } else {
+        // Was multi-finger (pinch/pan)
+        setIsPanning(false);
+        lastTouchDist.current = 0;
+      }
+      touchCount.current = 0;
+    } else if (e.touches.length === 1 && touchCount.current === 2) {
+      // Went from 2 fingers to 1 — keep panning with single finger
+      lastPanPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  }, [isPanning, currentStroke, currentShape, onAddElement]);
+
   return (
     <div ref={containerRef} className="absolute inset-0">
       <canvas
@@ -201,6 +354,9 @@ export default function WhiteboardCanvas({
         onMouseUp={handlePointerUp}
         onMouseLeave={handlePointerUp}
         onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
