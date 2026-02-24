@@ -150,6 +150,16 @@ export function useCanvas() {
     });
   }, [pushHistory]);
 
+  const deleteSelected = useCallback(() => {
+    if (!selectedElementId) return;
+    setElements(prev => {
+      const next = prev.filter(el => el.id !== selectedElementId);
+      pushHistory(next);
+      return next;
+    });
+    setSelectedElementId(null);
+  }, [selectedElementId, pushHistory]);
+
   return {
     elements, setElements, camera, setCamera,
     activeTool, setActiveTool, color, setColor: handleColorChange,
@@ -159,6 +169,6 @@ export function useCanvas() {
     canUndo: historyIndex > 0,
     canRedo: historyIndex < history.length - 1,
     selectedElementId, setSelectedElementId,
-    moveElement, commitMove,
+    moveElement, commitMove, deleteSelected,
   };
 }
