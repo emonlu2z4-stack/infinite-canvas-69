@@ -1,4 +1,5 @@
 import type { BoardState, BoardMeta, CanvasElement, Camera } from '@/types/canvas';
+import type { BoardTemplate } from '@/lib/templates';
 
 const BOARDS_KEY = 'eduboard_boards';
 const BOARD_PREFIX = 'eduboard_board_';
@@ -76,4 +77,22 @@ export function updateBoardThumbnail(id: string, thumbnail: string) {
     boards[idx].thumbnail = thumbnail;
     saveBoardList(boards);
   }
+}
+
+export function createBoardFromTemplate(template: BoardTemplate): BoardState {
+  // Deep clone elements with fresh IDs
+  const elements = JSON.parse(JSON.stringify(template.elements)) as CanvasElement[];
+  elements.forEach(el => { el.id = crypto.randomUUID(); });
+  const board: BoardState = {
+    meta: {
+      id: crypto.randomUUID(),
+      name: template.name,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    },
+    elements,
+    camera: { x: 0, y: 0, zoom: 1 },
+  };
+  saveBoard(board);
+  return board;
 }

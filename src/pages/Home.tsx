@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, MoreVertical, Search, LayoutGrid } from 'lucide-react';
+import { Plus, Pencil, Trash2, MoreVertical, Search, LayoutGrid, BookTemplate } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
-import { listBoards, createBoard, renameBoard, deleteBoard } from '@/lib/boardStorage';
+import { listBoards, createBoard, renameBoard, deleteBoard, createBoardFromTemplate } from '@/lib/boardStorage';
+import TemplateDialog from '@/components/TemplateDialog';
+import type { BoardTemplate } from '@/lib/templates';
 import type { BoardMeta } from '@/types/canvas';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
@@ -20,6 +22,7 @@ export default function Home() {
   const [renameDialog, setRenameDialog] = useState<{ id: string; name: string } | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const [templateOpen, setTemplateOpen] = useState(false);
 
   useEffect(() => {
     setBoards(listBoards());
@@ -31,6 +34,12 @@ export default function Home() {
 
   const handleCreate = () => {
     const board = createBoard(`Board ${boards.length + 1}`);
+    navigate(`/board/${board.meta.id}`);
+  };
+
+  const handleTemplateSelect = (template: BoardTemplate) => {
+    const board = createBoardFromTemplate(template);
+    setTemplateOpen(false);
     navigate(`/board/${board.meta.id}`);
   };
 
@@ -70,6 +79,10 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle className="text-muted-foreground hover:bg-muted" />
+            <Button variant="outline" onClick={() => setTemplateOpen(true)} className="gap-2">
+              <BookTemplate size={16} />
+              Templates
+            </Button>
             <Button onClick={handleCreate} className="gap-2">
               <Plus size={16} />
               New Board
@@ -209,6 +222,13 @@ export default function Home() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Template Dialog */}
+      <TemplateDialog
+        open={templateOpen}
+        onOpenChange={setTemplateOpen}
+        onSelect={handleTemplateSelect}
+      />
     </div>
   );
 }
