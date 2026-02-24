@@ -55,7 +55,16 @@ export interface Camera {
   zoom: number;
 }
 
+export interface BoardMeta {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  thumbnail?: string;
+}
+
 export interface BoardState {
+  meta: BoardMeta;
   elements: CanvasElement[];
   camera: Camera;
 }
