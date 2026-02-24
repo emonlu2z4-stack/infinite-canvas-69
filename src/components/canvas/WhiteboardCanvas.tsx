@@ -21,13 +21,14 @@ interface WhiteboardCanvasProps {
   onSelectElement?: (id: string | null) => void;
   onMoveElement?: (id: string, dx: number, dy: number) => void;
   onCommitMove?: () => void;
+  onResizeElement?: (id: string, handle: string, dx: number, dy: number) => void;
 }
 
 export default function WhiteboardCanvas({
   elements, activeTool, color, brushSize,
   camera, onAddElement, onEraseAt, onZoom, onPan,
   screenToCanvas, onTextAdd, onStickyAdd, onImageDrop, onImageAdd,
-  selectedElementId, onSelectElement, onMoveElement, onCommitMove,
+  selectedElementId, onSelectElement, onMoveElement, onCommitMove, onResizeElement,
 }: WhiteboardCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const containerRef = useRef<HTMLDivElement>(null!);
@@ -39,6 +40,8 @@ export default function WhiteboardCanvas({
   const lastPanPos = useRef<Point>({ x: 0, y: 0 });
   const [isDragOver, setIsDragOver] = useState(false);
   const isDraggingElement = useRef(false);
+  const isResizing = useRef(false);
+  const resizeHandle = useRef<string>('');
   const dragLastPos = useRef<Point>({ x: 0, y: 0 });
   const lastTouchDist = useRef<number>(0);
   const lastTouchCenter = useRef<Point>({ x: 0, y: 0 });
@@ -72,7 +75,6 @@ export default function WhiteboardCanvas({
   }, [getCanvasPointFromXY]);
 
   const hitTestElement = useCallback((point: Point): CanvasElement | null => {
-    // Iterate in reverse so topmost elements are hit first
     for (let i = elements.length - 1; i >= 0; i--) {
       const el = elements[i];
       const bounds = getElementBounds(el);
@@ -86,8 +88,29 @@ export default function WhiteboardCanvas({
     return null;
   }, [elements]);
 
+  const hitTestResizeHandle = useCallback((point: Point): string | null => {
+    if (!selectedElementId) return null;
+    const sel = elements.find(e => e.id === selectedElementId);
+    if (!sel) return null;
+    const bounds = getElementBounds(sel);
+    if (!bounds) return null;
+    const pad = 6;
+    const handleSize = 8;
+    const corners: [number, number, string][] = [
+      [bounds.x - pad, bounds.y - pad, 'tl'],
+      [bounds.x + bounds.w + pad, bounds.y - pad, 'tr'],
+      [bounds.x - pad, bounds.y + bounds.h + pad, 'bl'],
+      [bounds.x + bounds.w + pad, bounds.y + bounds.h + pad, 'br'],
+    ];
+    for (const [cx, cy, handle] of corners) {
+      if (Math.abs(point.x - cx) <= handleSize && Math.abs(point.y - cy) <= handleSize) {
+        return handle;
+      }
+    }
+    return null;
+  }, [elements, selectedElementId]);
+
   const handlePointerDown = useCallback((e: React.MouseEvent) => {
-    // Middle mouse = pan
     if (e.button === 1) {
       setIsPanning(true);
       lastPanPos.current = { x: e.clientX, y: e.clientY };
@@ -98,8 +121,16 @@ export default function WhiteboardCanvas({
 
     const point = getCanvasPoint(e);
 
-    // Select tool: hit test for element selection & dragging
     if (activeTool === 'select') {
+      // Check resize handles first
+      const handle = hitTestResizeHandle(point);
+      if (handle) {
+        isResizing.current = true;
+        resizeHandle.current = handle;
+        dragLastPos.current = point;
+        return;
+      }
+
       const hit = hitTestElement(point);
       if (hit) {
         onSelectElement?.(hit.id);
@@ -107,7 +138,6 @@ export default function WhiteboardCanvas({
         dragLastPos.current = point;
       } else {
         onSelectElement?.(null);
-        // Pan if clicking empty space
         setIsPanning(true);
         lastPanPos.current = { x: e.clientX, y: e.clientY };
       }
@@ -160,7 +190,7 @@ export default function WhiteboardCanvas({
       setCurrentShape(shape);
       setIsDrawing(true);
     }
-  }, [activeTool, color, brushSize, getCanvasPoint, onEraseAt, onTextAdd, onStickyAdd, hitTestElement, onSelectElement]);
+  }, [activeTool, color, brushSize, getCanvasPoint, onEraseAt, onTextAdd, onStickyAdd, hitTestElement, hitTestResizeHandle, onSelectElement]);
 
   const handlePointerMove = useCallback((e: React.MouseEvent) => {
     if (isPanning) {
@@ -168,6 +198,15 @@ export default function WhiteboardCanvas({
       const dy = e.clientY - lastPanPos.current.y;
       lastPanPos.current = { x: e.clientX, y: e.clientY };
       onPan(dx, dy);
+      return;
+    }
+
+    if (isResizing.current && selectedElementId) {
+      const point = getCanvasPoint(e);
+      const dx = point.x - dragLastPos.current.x;
+      const dy = point.y - dragLastPos.current.y;
+      dragLastPos.current = point;
+      onResizeElement?.(selectedElementId, resizeHandle.current, dx, dy);
       return;
     }
 
@@ -192,9 +231,15 @@ export default function WhiteboardCanvas({
     if (activeTool === 'eraser') {
       onEraseAt(point, brushSize * 3);
     }
-  }, [isPanning, isDrawing, currentStroke, currentShape, activeTool, brushSize, getCanvasPoint, onPan, onEraseAt, selectedElementId, onMoveElement]);
+  }, [isPanning, isDrawing, currentStroke, currentShape, activeTool, brushSize, getCanvasPoint, onPan, onEraseAt, selectedElementId, onMoveElement, onResizeElement]);
 
   const handlePointerUp = useCallback(() => {
+    if (isResizing.current) {
+      isResizing.current = false;
+      resizeHandle.current = '';
+      onCommitMove?.();
+      return;
+    }
     if (isDraggingElement.current) {
       isDraggingElement.current = false;
       onCommitMove?.();
@@ -224,10 +269,11 @@ export default function WhiteboardCanvas({
     }
   }, [onZoom, onPan]);
 
-  const cursorClass = activeTool === 'select' ? (isDraggingElement.current ? 'cursor-grabbing' : 'cursor-grab') :
-    activeTool === 'eraser' ? 'cursor-crosshair' :
-    activeTool === 'text' ? 'cursor-text' :
-    activeTool === 'image' ? 'cursor-copy' : 'cursor-crosshair';
+  const cursorClass = activeTool === 'select'
+    ? (isResizing.current ? 'cursor-nwse-resize' : isDraggingElement.current ? 'cursor-grabbing' : 'cursor-grab')
+    : activeTool === 'eraser' ? 'cursor-crosshair'
+    : activeTool === 'text' ? 'cursor-text'
+    : activeTool === 'image' ? 'cursor-copy' : 'cursor-crosshair';
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();

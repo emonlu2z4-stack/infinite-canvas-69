@@ -28,7 +28,7 @@ const BoardEditor = () => {
     screenToCanvas, zoom, pan, resetZoom,
     canUndo, canRedo,
     selectedElementId, setSelectedElementId,
-    moveElement, commitMove, deleteSelected,
+    moveElement, commitMove, deleteSelected, resizeElement,
   } = useCanvas();
 
   const [textInputPos, setTextInputPos] = useState<Point | null>(null);
@@ -248,6 +248,7 @@ const BoardEditor = () => {
         onSelectElement={setSelectedElementId}
         onMoveElement={moveElement}
         onCommitMove={commitMove}
+        onResizeElement={resizeElement}
       />
       {textInputPos && (
         <TextInput

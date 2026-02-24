@@ -160,6 +160,84 @@ export function useCanvas() {
     setSelectedElementId(null);
   }, [selectedElementId, pushHistory]);
 
+  const resizeElement = useCallback((id: string, handle: string, dx: number, dy: number) => {
+    setElements(prev => prev.map(el => {
+      if (el.id !== id) return el;
+
+      if (el.type === 'rectangle' || el.type === 'circle' || el.type === 'arrow' || el.type === 'line') {
+        const updated = { ...el, start: { ...el.start }, end: { ...el.end } };
+        if (handle.includes('l')) updated.start.x += dx;
+        if (handle.includes('r')) updated.end.x += dx;
+        if (handle.includes('t')) updated.start.y += dy;
+        if (handle.includes('b')) updated.end.y += dy;
+        return updated;
+      }
+
+      if (el.type === 'text' || el.type === 'sticky') {
+        const updated = { ...el, position: { ...el.position } };
+        if (handle.includes('l')) { updated.position.x += dx; updated.width -= dx; }
+        if (handle.includes('r')) { updated.width += dx; }
+        if (handle.includes('t')) { updated.position.y += dy; updated.height -= dy; }
+        if (handle.includes('b')) { updated.height += dy; }
+        updated.width = Math.max(20, updated.width);
+        updated.height = Math.max(20, updated.height);
+        return updated;
+      }
+
+      if (el.type === 'image') {
+        const aspect = el.naturalWidth / el.naturalHeight;
+        const updated = { ...el, position: { ...el.position } };
+        if (handle === 'br') {
+          updated.width += dx;
+          updated.width = Math.max(20, updated.width);
+          updated.height = updated.width / aspect;
+        } else if (handle === 'bl') {
+          updated.position.x += dx;
+          updated.width -= dx;
+          updated.width = Math.max(20, updated.width);
+          updated.height = updated.width / aspect;
+        } else if (handle === 'tr') {
+          updated.position.y += dy;
+          updated.height -= dy;
+          updated.height = Math.max(20, updated.height);
+          updated.width = updated.height * aspect;
+        } else if (handle === 'tl') {
+          updated.position.x += dx;
+          updated.position.y += dy;
+          updated.width -= dx;
+          updated.width = Math.max(20, updated.width);
+          updated.height = updated.width / aspect;
+        }
+        return updated;
+      }
+
+      if (el.type === 'pen' || el.type === 'highlighter') {
+        // Scale stroke points within bounds
+        if (el.points.length === 0) return el;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        el.points.forEach(p => { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); });
+        const ow = maxX - minX || 1;
+        const oh = maxY - minY || 1;
+        let nMinX = minX, nMinY = minY, nMaxX = maxX, nMaxY = maxY;
+        if (handle.includes('l')) nMinX += dx;
+        if (handle.includes('r')) nMaxX += dx;
+        if (handle.includes('t')) nMinY += dy;
+        if (handle.includes('b')) nMaxY += dy;
+        const nw = Math.max(5, nMaxX - nMinX);
+        const nh = Math.max(5, nMaxY - nMinY);
+        return {
+          ...el,
+          points: el.points.map(p => ({
+            x: nMinX + ((p.x - minX) / ow) * nw,
+            y: nMinY + ((p.y - minY) / oh) * nh,
+          })),
+        };
+      }
+
+      return el;
+    }));
+  }, []);
+
   return {
     elements, setElements, camera, setCamera,
     activeTool, setActiveTool, color, setColor: handleColorChange,
@@ -169,6 +247,6 @@ export function useCanvas() {
     canUndo: historyIndex > 0,
     canRedo: historyIndex < history.length - 1,
     selectedElementId, setSelectedElementId,
-    moveElement, commitMove, deleteSelected,
+    moveElement, commitMove, deleteSelected, resizeElement,
   };
 }
