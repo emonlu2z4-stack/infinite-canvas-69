@@ -1,15 +1,47 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Camera, CanvasElement, Tool, Point } from '@/types/canvas';
+
+function getForegroundColor(): string {
+  const fg = getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim();
+  if (fg) {
+    // Convert HSL values to hex for canvas rendering
+    const canvas = document.createElement('canvas');
+    canvas.width = 1; canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = `hsl(${fg})`;
+      ctx.fillRect(0, 0, 1, 1);
+      const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+  }
+  return '#1a1a2e';
+}
 
 export function useCanvas() {
   const [elements, setElements] = useState<CanvasElement[]>([]);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 });
   const [activeTool, setActiveTool] = useState<Tool>('pen');
-  const [color, setColor] = useState('#1a1a2e');
+  const [color, setColor] = useState(getForegroundColor);
   const [brushSize, setBrushSize] = useState(3);
   const [history, setHistory] = useState<CanvasElement[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const userPickedColor = useRef(false);
 
+  // Update default color when theme changes
+  useEffect(() => {
+    if (userPickedColor.current) return;
+    const observer = new MutationObserver(() => {
+      setColor(getForegroundColor());
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const handleColorChange = useCallback((c: string) => {
+    userPickedColor.current = true;
+    setColor(c);
+  }, []);
   const pushHistory = useCallback((newElements: CanvasElement[]) => {
     setHistory(prev => {
       const trimmed = prev.slice(0, historyIndex + 1);
@@ -95,7 +127,7 @@ export function useCanvas() {
 
   return {
     elements, setElements, camera, setCamera,
-    activeTool, setActiveTool, color, setColor,
+    activeTool, setActiveTool, color, setColor: handleColorChange,
     brushSize, setBrushSize,
     addElement, eraseAt, undo, redo,
     screenToCanvas, zoom, pan, resetZoom,
