@@ -76,10 +76,12 @@ export default function WhiteboardCanvas({
     const point = getCanvasPoint(e);
 
     if (activeTool === 'text') {
+      e.preventDefault();
       onTextAdd?.(point);
       return;
     }
     if (activeTool === 'sticky') {
+      e.preventDefault();
       onStickyAdd?.(point);
       return;
     }

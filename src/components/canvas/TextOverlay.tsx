@@ -12,9 +12,17 @@ interface TextOverlayProps {
 
 export function TextInput({ position, camera, onSubmit, onCancel, color }: TextOverlayProps) {
   const [content, setContent] = useState('');
+  const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null!);
 
-  useEffect(() => { ref.current?.focus(); }, []);
+  useEffect(() => {
+    // Delay focus slightly to ensure DOM is ready
+    const timer = setTimeout(() => {
+      ref.current?.focus();
+      setMounted(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const screenX = position.x * camera.zoom + camera.x;
   const screenY = position.y * camera.zoom + camera.y;
@@ -49,31 +57,35 @@ export function TextInput({ position, camera, onSubmit, onCancel, color }: TextO
       onChange={e => setContent(e.target.value)}
       onKeyDown={handleKeyDown}
       onBlur={() => {
-        if (content.trim()) {
-          onSubmit({
-            id: crypto.randomUUID(),
-            type: 'text',
-            position,
-            content: content.trim(),
-            fontSize: 16,
-            fontWeight: 'normal',
-            fontStyle: 'normal',
-            color,
-            width: 200,
-            height: 30,
-          });
-        } else {
-          onCancel();
-        }
+        if (!mounted) return;
+        // Small delay to avoid instant cancel on render
+        setTimeout(() => {
+          if (content.trim()) {
+            onSubmit({
+              id: crypto.randomUUID(),
+              type: 'text',
+              position,
+              content: content.trim(),
+              fontSize: 16,
+              fontWeight: 'normal',
+              fontStyle: 'normal',
+              color,
+              width: 200,
+              height: 30,
+            });
+          } else {
+            onCancel();
+          }
+        }, 150);
       }}
-      className="absolute z-50 bg-transparent border-2 border-primary rounded px-2 py-1 outline-none resize-none text-base min-w-[120px]"
+      className="absolute z-50 bg-card border-2 border-primary rounded px-2 py-1 outline-none resize-none text-base min-w-[160px] shadow-lg"
       style={{
         left: screenX,
         top: screenY,
         color,
         fontSize: 16 * camera.zoom,
       }}
-      rows={1}
+      rows={2}
       placeholder="Type here..."
     />
   );
