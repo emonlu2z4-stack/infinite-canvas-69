@@ -5,9 +5,10 @@ interface UseKeyboardShortcutsProps {
   onToolChange: (tool: Tool) => void;
   onUndo: () => void;
   onRedo: () => void;
+  onImageImport?: () => void;
 }
 
-export function useKeyboardShortcuts({ onToolChange, onUndo, onRedo }: UseKeyboardShortcutsProps) {
+export function useKeyboardShortcuts({ onToolChange, onUndo, onRedo, onImageImport }: UseKeyboardShortcutsProps) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // Don't trigger shortcuts when typing in inputs
@@ -37,9 +38,13 @@ export function useKeyboardShortcuts({ onToolChange, onUndo, onRedo }: UseKeyboa
       if (!e.metaKey && !e.ctrlKey && !e.altKey && toolMap[key]) {
         onToolChange(toolMap[key]);
       }
+
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && key === 'i') {
+        onImageImport?.();
+      }
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onToolChange, onUndo, onRedo]);
+  }, [onToolChange, onUndo, onRedo, onImageImport]);
 }

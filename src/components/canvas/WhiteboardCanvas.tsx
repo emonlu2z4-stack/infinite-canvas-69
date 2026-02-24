@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { useCanvasRenderer } from './CanvasRenderer';
-import type { CanvasElement, Point, Stroke, ShapeElement, Tool } from '@/types/canvas';
+import type { CanvasElement, Point, Stroke, ShapeElement, ImageElement, Tool } from '@/types/canvas';
 
 interface WhiteboardCanvasProps {
   elements: CanvasElement[];
@@ -15,12 +15,13 @@ interface WhiteboardCanvasProps {
   screenToCanvas: (sx: number, sy: number) => Point;
   onTextAdd?: (position: Point) => void;
   onStickyAdd?: (position: Point) => void;
+  onImageDrop?: (file: File, position: Point) => void;
 }
 
 export default function WhiteboardCanvas({
   elements, activeTool, color, brushSize,
   camera, onAddElement, onEraseAt, onZoom, onPan,
-  screenToCanvas, onTextAdd, onStickyAdd,
+  screenToCanvas, onTextAdd, onStickyAdd, onImageDrop,
 }: WhiteboardCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const containerRef = useRef<HTMLDivElement>(null!);
@@ -30,6 +31,7 @@ export default function WhiteboardCanvas({
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
   const [currentShape, setCurrentShape] = useState<ShapeElement | null>(null);
   const lastPanPos = useRef<Point>({ x: 0, y: 0 });
+  const [isDragOver, setIsDragOver] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setSize({ width: window.innerWidth, height: window.innerHeight });
@@ -164,6 +166,31 @@ export default function WhiteboardCanvas({
     activeTool === 'eraser' ? 'cursor-crosshair' :
     activeTool === 'text' ? 'cursor-text' : 'cursor-crosshair';
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) return;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const point = screenToCanvas(e.clientX - rect.left, e.clientY - rect.top);
+    files.forEach((file, i) => {
+      onImageDrop?.(file, { x: point.x + i * 20, y: point.y + i * 20 });
+    });
+  }, [screenToCanvas, onImageDrop]);
+
   return (
     <div ref={containerRef} className="absolute inset-0">
       <canvas
@@ -174,7 +201,15 @@ export default function WhiteboardCanvas({
         onMouseUp={handlePointerUp}
         onMouseLeave={handlePointerUp}
         onWheel={handleWheel}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       />
+      {isDragOver && (
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center bg-primary/5 border-2 border-dashed border-primary/30 rounded-lg z-40">
+          <p className="text-primary font-medium text-lg">Drop image here</p>
+        </div>
+      )}
     </div>
   );
 }

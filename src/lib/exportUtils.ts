@@ -158,6 +158,14 @@ function drawElementExport(ctx: CanvasRenderingContext2D, el: CanvasElement) {
     });
   }
 
+  if (el.type === 'image') {
+    const img = new Image();
+    img.src = el.src;
+    if (img.complete) {
+      ctx.drawImage(img, el.position.x, el.position.y, el.width, el.height);
+    }
+  }
+
   ctx.restore();
 }
 
