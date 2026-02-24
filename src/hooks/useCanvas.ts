@@ -125,6 +125,31 @@ export function useCanvas() {
     setCamera({ x: 0, y: 0, zoom: 1 });
   }, []);
 
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+
+  const moveElement = useCallback((id: string, dx: number, dy: number) => {
+    setElements(prev => prev.map(el => {
+      if (el.id !== id) return el;
+      if (el.type === 'pen' || el.type === 'highlighter') {
+        return { ...el, points: el.points.map(p => ({ x: p.x + dx, y: p.y + dy })) };
+      }
+      if (el.type === 'rectangle' || el.type === 'circle' || el.type === 'arrow' || el.type === 'line') {
+        return { ...el, start: { x: el.start.x + dx, y: el.start.y + dy }, end: { x: el.end.x + dx, y: el.end.y + dy } };
+      }
+      if (el.type === 'text' || el.type === 'sticky' || el.type === 'image') {
+        return { ...el, position: { x: el.position.x + dx, y: el.position.y + dy } };
+      }
+      return el;
+    }));
+  }, []);
+
+  const commitMove = useCallback(() => {
+    setElements(prev => {
+      pushHistory(prev);
+      return prev;
+    });
+  }, [pushHistory]);
+
   return {
     elements, setElements, camera, setCamera,
     activeTool, setActiveTool, color, setColor: handleColorChange,
@@ -133,5 +158,7 @@ export function useCanvas() {
     screenToCanvas, zoom, pan, resetZoom,
     canUndo: historyIndex > 0,
     canRedo: historyIndex < history.length - 1,
+    selectedElementId, setSelectedElementId,
+    moveElement, commitMove,
   };
 }

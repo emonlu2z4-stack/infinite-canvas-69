@@ -176,9 +176,58 @@ interface CanvasRendererProps {
   width: number;
   height: number;
   activeElement?: CanvasElement | null;
+  selectedElementId?: string | null;
 }
 
-export function useCanvasRenderer({ canvasRef, elements, camera, width, height, activeElement }: CanvasRendererProps) {
+function getElementBounds(el: CanvasElement): { x: number; y: number; w: number; h: number } | null {
+  if (el.type === 'pen' || el.type === 'highlighter') {
+    if (el.points.length === 0) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    el.points.forEach(p => { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); });
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  }
+  if (el.type === 'rectangle' || el.type === 'circle' || el.type === 'arrow' || el.type === 'line') {
+    const x = Math.min(el.start.x, el.end.x);
+    const y = Math.min(el.start.y, el.end.y);
+    return { x, y, w: Math.abs(el.end.x - el.start.x), h: Math.abs(el.end.y - el.start.y) };
+  }
+  if (el.type === 'text' || el.type === 'sticky' || el.type === 'image') {
+    return { x: el.position.x, y: el.position.y, w: el.width, h: el.height };
+  }
+  return null;
+}
+
+export { getElementBounds };
+
+function drawSelectionBox(ctx: CanvasRenderingContext2D, el: CanvasElement) {
+  const bounds = getElementBounds(el);
+  if (!bounds) return;
+  const pad = 6;
+  ctx.save();
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 3]);
+  ctx.strokeRect(bounds.x - pad, bounds.y - pad, bounds.w + pad * 2, bounds.h + pad * 2);
+  ctx.setLineDash([]);
+  // Corner handles
+  const size = 6;
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 1.5;
+  const corners = [
+    [bounds.x - pad, bounds.y - pad],
+    [bounds.x + bounds.w + pad, bounds.y - pad],
+    [bounds.x - pad, bounds.y + bounds.h + pad],
+    [bounds.x + bounds.w + pad, bounds.y + bounds.h + pad],
+  ];
+  corners.forEach(([cx, cy]) => {
+    ctx.fillRect(cx - size / 2, cy - size / 2, size, size);
+    ctx.strokeRect(cx - size / 2, cy - size / 2, size, size);
+  });
+  ctx.restore();
+}
+
+export function useCanvasRenderer({ canvasRef, elements, camera, width, height, activeElement, selectedElementId }: CanvasRendererProps) {
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -194,7 +243,6 @@ export function useCanvasRenderer({ canvasRef, elements, camera, width, height, 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
 
-    // Background
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--canvas')
       ? `hsl(${getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim()})`
       : '#f5f5f7';
@@ -209,8 +257,14 @@ export function useCanvasRenderer({ canvasRef, elements, camera, width, height, 
     elements.forEach(el => drawElement(ctx, el));
     if (activeElement) drawElement(ctx, activeElement);
 
+    // Draw selection
+    if (selectedElementId) {
+      const sel = elements.find(e => e.id === selectedElementId);
+      if (sel) drawSelectionBox(ctx, sel);
+    }
+
     ctx.restore();
-  }, [canvasRef, elements, camera, width, height, activeElement]);
+  }, [canvasRef, elements, camera, width, height, activeElement, selectedElementId]);
 
   useEffect(() => {
     const id = requestAnimationFrame(render);
