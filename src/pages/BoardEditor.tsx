@@ -8,7 +8,7 @@ import { useCanvas } from '@/hooks/useCanvas';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { getBoard, saveBoard, updateBoardThumbnail } from '@/lib/boardStorage';
 import { exportAsPNG, exportAsPDF, generateThumbnail } from '@/lib/exportUtils';
-import type { Point, TextElement, StickyNote } from '@/types/canvas';
+import type { Point, TextElement, StickyNote, ImageElement } from '@/types/canvas';
 import { ArrowLeft, Download, Save } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -34,6 +34,7 @@ const BoardEditor = () => {
   const [boardName, setBoardName] = useState('Untitled');
   const [loaded, setLoaded] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load board
   useEffect(() => {
@@ -64,12 +65,6 @@ const BoardEditor = () => {
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
   }, [elements, camera, loaded, id]);
 
-  useKeyboardShortcuts({
-    onToolChange: setActiveTool,
-    onUndo: undo,
-    onRedo: redo,
-  });
-
   const handleZoomIn = useCallback(() => zoom(-1, window.innerWidth / 2, window.innerHeight / 2), [zoom]);
   const handleZoomOut = useCallback(() => zoom(1, window.innerWidth / 2, window.innerHeight / 2), [zoom]);
   const handleTextAdd = useCallback((pos: Point) => setTextInputPos(pos), []);
@@ -84,6 +79,58 @@ const BoardEditor = () => {
     addElement(el);
     setStickyInputPos(null);
   }, [addElement]);
+
+  const loadImageFile = useCallback((file: File, position: Point) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const src = reader.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 400;
+        const scale = img.width > maxW ? maxW / img.width : 1;
+        const imageEl: ImageElement = {
+          id: crypto.randomUUID(),
+          type: 'image',
+          position,
+          src,
+          width: img.width * scale,
+          height: img.height * scale,
+          naturalWidth: img.width,
+          naturalHeight: img.height,
+        };
+        addElement(imageEl);
+      };
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+  }, [addElement]);
+
+  const handleImageDrop = useCallback((file: File, position: Point) => {
+    loadImageFile(file, position);
+  }, [loadImageFile]);
+
+  const handleImageImport = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  useKeyboardShortcuts({
+    onToolChange: setActiveTool,
+    onUndo: undo,
+    onRedo: redo,
+    onImageImport: handleImageImport,
+  });
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const center = screenToCanvas(window.innerWidth / 2, window.innerHeight / 2);
+    Array.from(files).forEach((file, i) => {
+      if (file.type.startsWith('image/')) {
+        loadImageFile(file, { x: center.x + i * 20, y: center.y + i * 20 });
+      }
+    });
+    e.target.value = '';
+  }, [loadImageFile, screenToCanvas]);
 
   const handleManualSave = () => {
     if (!id) return;
@@ -165,6 +212,7 @@ const BoardEditor = () => {
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onResetZoom={resetZoom}
+        onImageImport={handleImageImport}
       />
 
       <WhiteboardCanvas
@@ -180,6 +228,7 @@ const BoardEditor = () => {
         screenToCanvas={screenToCanvas}
         onTextAdd={handleTextAdd}
         onStickyAdd={handleStickyAdd}
+        onImageDrop={handleImageDrop}
       />
 
       {textInputPos && (
@@ -206,6 +255,16 @@ const BoardEditor = () => {
         camera={camera}
         canvasWidth={window.innerWidth}
         canvasHeight={window.innerHeight}
+      />
+
+      {/* Hidden file input for image import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleFileChange}
       />
     </div>
   );

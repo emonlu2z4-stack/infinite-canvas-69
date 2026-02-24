@@ -1,4 +1,4 @@
-export type Tool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'circle' | 'arrow' | 'line' | 'text' | 'sticky';
+export type Tool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'circle' | 'arrow' | 'line' | 'text' | 'sticky' | 'image';
 
 export interface Point {
   x: number;
@@ -47,7 +47,18 @@ export interface StickyNote {
   height: number;
 }
 
-export type CanvasElement = Stroke | ShapeElement | TextElement | StickyNote;
+export interface ImageElement {
+  id: string;
+  type: 'image';
+  position: Point;
+  src: string; // base64 data URL
+  width: number;
+  height: number;
+  naturalWidth: number;
+  naturalHeight: number;
+}
+
+export type CanvasElement = Stroke | ShapeElement | TextElement | StickyNote | ImageElement;
 
 export interface Camera {
   x: number;

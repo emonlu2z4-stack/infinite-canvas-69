@@ -1,5 +1,20 @@
 import { useRef, useEffect, useCallback } from 'react';
-import type { CanvasElement, Camera } from '@/types/canvas';
+import type { CanvasElement, Camera, ImageElement } from '@/types/canvas';
+
+// Cache loaded HTMLImageElement objects by src
+const imageCache = new Map<string, HTMLImageElement>();
+
+function getOrLoadImage(src: string): HTMLImageElement | null {
+  if (imageCache.has(src)) return imageCache.get(src)!;
+  const img = new Image();
+  img.src = src;
+  img.onload = () => imageCache.set(src, img);
+  if (img.complete) {
+    imageCache.set(src, img);
+    return img;
+  }
+  return null;
+}
 
 function drawElement(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   ctx.save();
@@ -109,6 +124,20 @@ function drawElement(ctx: CanvasRenderingContext2D, el: CanvasElement) {
     lines.forEach((line, i) => {
       ctx.fillText(line, position.x + 12, position.y + 12 + i * 20, width - 24);
     });
+  }
+
+  if (el.type === 'image') {
+    const img = getOrLoadImage(el.src);
+    if (img) {
+      ctx.drawImage(img, el.position.x, el.position.y, el.width, el.height);
+    } else {
+      // Placeholder while loading
+      ctx.fillStyle = 'rgba(0,0,0,0.05)';
+      ctx.fillRect(el.position.x, el.position.y, el.width, el.height);
+      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(el.position.x, el.position.y, el.width, el.height);
+    }
   }
 
   ctx.restore();
