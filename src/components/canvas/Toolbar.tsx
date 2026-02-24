@@ -50,7 +50,7 @@ export default function Toolbar({
   onImageImport,
 }: ToolbarProps) {
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-toolbar border border-toolbar-border rounded-xl px-2 py-1.5 toolbar-shadow">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-toolbar border border-toolbar-border rounded-xl px-2 py-1.5 toolbar-shadow max-w-[calc(100vw-2rem)] overflow-x-auto scrollbar-none">
       {/* Drawing tools */}
       {tools.map(tool => (
         <Tooltip key={tool.id}>
