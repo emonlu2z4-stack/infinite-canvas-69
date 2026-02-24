@@ -40,6 +40,7 @@ const tools: { id: Tool; icon: React.ElementType; label: string; shortcut: strin
   { id: 'line', icon: Minus, label: 'Line', shortcut: 'L' },
   { id: 'text', icon: Type, label: 'Text', shortcut: 'T' },
   { id: 'sticky', icon: StickyNote, label: 'Sticky Note', shortcut: 'S' },
+  { id: 'image', icon: ImagePlus, label: 'Image', shortcut: 'I' },
 ];
 
 export default function Toolbar({
@@ -71,21 +72,6 @@ export default function Toolbar({
           </TooltipContent>
         </Tooltip>
       ))}
-
-      {/* Image import */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            onClick={onImageImport}
-            className="p-2 rounded-lg text-toolbar-foreground hover:bg-toolbar-hover transition-all duration-150"
-          >
-            <ImagePlus size={18} />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">
-          Import Image <kbd className="ml-1 px-1 py-0.5 rounded bg-muted text-muted-foreground text-[10px]">I</kbd>
-        </TooltipContent>
-      </Tooltip>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
