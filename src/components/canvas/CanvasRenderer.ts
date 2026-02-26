@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import type { CanvasElement, Camera, ImageElement } from '@/types/canvas';
+import type { ElementAnimation } from '@/hooks/useCanvasAnimation';
 
 // Cache loaded HTMLImageElement objects by src
 const imageCache = new Map<string, HTMLImageElement>();
@@ -177,6 +178,7 @@ interface CanvasRendererProps {
   height: number;
   activeElement?: CanvasElement | null;
   selectedElementId?: string | null;
+  animation?: ElementAnimation;
 }
 
 function getElementBounds(el: CanvasElement): { x: number; y: number; w: number; h: number } | null {
@@ -227,7 +229,7 @@ function drawSelectionBox(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   ctx.restore();
 }
 
-export function useCanvasRenderer({ canvasRef, elements, camera, width, height, activeElement, selectedElementId }: CanvasRendererProps) {
+export function useCanvasRenderer({ canvasRef, elements, camera, width, height, activeElement, selectedElementId, animation }: CanvasRendererProps) {
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -254,17 +256,35 @@ export function useCanvasRenderer({ canvasRef, elements, camera, width, height, 
 
     drawGrid(ctx, camera, width, height);
 
-    elements.forEach(el => drawElement(ctx, el));
+    elements.forEach(el => {
+      const progress = animation?.progress.get(el.id);
+      if (progress !== undefined && progress < 1) {
+        ctx.save();
+        ctx.globalAlpha = progress;
+        const bounds = getElementBounds(el);
+        if (bounds) {
+          const cx = bounds.x + bounds.w / 2;
+          const cy = bounds.y + bounds.h / 2;
+          const s = 0.85 + 0.15 * progress;
+          ctx.translate(cx, cy);
+          ctx.scale(s, s);
+          ctx.translate(-cx, -cy);
+        }
+        drawElement(ctx, el);
+        ctx.restore();
+      } else {
+        drawElement(ctx, el);
+      }
+    });
     if (activeElement) drawElement(ctx, activeElement);
 
-    // Draw selection
     if (selectedElementId) {
       const sel = elements.find(e => e.id === selectedElementId);
       if (sel) drawSelectionBox(ctx, sel);
     }
 
     ctx.restore();
-  }, [canvasRef, elements, camera, width, height, activeElement, selectedElementId]);
+  }, [canvasRef, elements, camera, width, height, activeElement, selectedElementId, animation]);
 
   useEffect(() => {
     const id = requestAnimationFrame(render);
