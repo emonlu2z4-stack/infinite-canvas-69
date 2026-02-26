@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { useCanvasRenderer, getElementBounds } from './CanvasRenderer';
 import type { CanvasElement, Point, Stroke, ShapeElement, ImageElement, Tool } from '@/types/canvas';
+import type { ElementAnimation } from '@/hooks/useCanvasAnimation';
 
 interface WhiteboardCanvasProps {
   elements: CanvasElement[];
@@ -22,6 +23,7 @@ interface WhiteboardCanvasProps {
   onMoveElement?: (id: string, dx: number, dy: number) => void;
   onCommitMove?: () => void;
   onResizeElement?: (id: string, handle: string, dx: number, dy: number) => void;
+  animation?: ElementAnimation;
 }
 
 export default function WhiteboardCanvas({
@@ -29,6 +31,7 @@ export default function WhiteboardCanvas({
   camera, onAddElement, onEraseAt, onZoom, onPan,
   screenToCanvas, onTextAdd, onStickyAdd, onImageDrop, onImageAdd,
   selectedElementId, onSelectElement, onMoveElement, onCommitMove, onResizeElement,
+  animation,
 }: WhiteboardCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const containerRef = useRef<HTMLDivElement>(null!);
@@ -60,6 +63,7 @@ export default function WhiteboardCanvas({
     width: size.width, height: size.height,
     activeElement,
     selectedElementId,
+    animation,
   });
 
   const getCanvasPointFromXY = useCallback((clientX: number, clientY: number) => {

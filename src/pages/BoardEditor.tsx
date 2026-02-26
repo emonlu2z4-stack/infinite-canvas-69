@@ -6,6 +6,7 @@ import MiniMap from '@/components/canvas/MiniMap';
 import { TextInput, StickyInput } from '@/components/canvas/TextOverlay';
 import { useCanvas } from '@/hooks/useCanvas';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useCanvasAnimation } from '@/hooks/useCanvasAnimation';
 import { getBoard, saveBoard, updateBoardThumbnail } from '@/lib/boardStorage';
 import { exportAsPNG, exportAsPDF, generateThumbnail } from '@/lib/exportUtils';
 import type { Point, TextElement, StickyNote, ImageElement } from '@/types/canvas';
@@ -38,7 +39,7 @@ const BoardEditor = () => {
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingImagePos = useRef<Point | null>(null);
-
+  const { animation, triggerEntrance } = useCanvasAnimation();
   // Load board
   useEffect(() => {
     if (!id) return;
@@ -47,6 +48,10 @@ const BoardEditor = () => {
       setElements(board.elements);
       setCamera(board.camera);
       setBoardName(board.meta.name);
+      // Trigger entrance animation for template-loaded boards
+      if (board.elements.length > 0) {
+        setTimeout(() => triggerEntrance(board.elements.map(e => e.id)), 50);
+      }
     }
     setLoaded(true);
   }, [id]);
@@ -249,6 +254,7 @@ const BoardEditor = () => {
         onMoveElement={moveElement}
         onCommitMove={commitMove}
         onResizeElement={resizeElement}
+        animation={animation}
       />
       {textInputPos && (
         <TextInput
