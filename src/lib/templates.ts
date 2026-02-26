@@ -144,30 +144,57 @@ const flowchartElements: CanvasElement[] = [
 ];
 
 // ── Cornell Notes ──
-const cornellElements: CanvasElement[] = [
-  // Title area
-  makeRect(-400, -320, 400, -270, '#0f3460', 2, '#dbeafe'),
-  makeText(-380, -305, 'Cornell Notes — Subject / Date', 18, { bold: true, color: '#0f3460' }),
-  // Cue column
-  makeRect(-400, -270, -100, 200, '#533483', 1),
-  makeText(-380, -255, 'Cue / Questions', 14, { bold: true, color: '#533483' }),
-  makeText(-380, -220, 'Key term?', 12, { color: '#6c757d' }),
-  makeText(-380, -190, 'Main idea?', 12, { color: '#6c757d' }),
-  makeText(-380, -160, 'Why important?', 12, { color: '#6c757d' }),
-  // Note-taking area
-  makeRect(-100, -270, 400, 200, '#1a1a2e', 1),
-  makeText(-80, -255, 'Notes', 14, { bold: true, color: '#1a1a2e' }),
-  makeText(-80, -220, '• Write detailed notes here...', 12, { color: '#6c757d', width: 440 }),
-  makeText(-80, -190, '• Capture key facts and concepts', 12, { color: '#6c757d', width: 440 }),
-  makeText(-80, -160, '• Use abbreviations and symbols', 12, { color: '#6c757d', width: 440 }),
-  // Summary area
-  makeRect(-400, 200, 400, 320, '#2a9d8f', 2, '#d1fae5'),
-  makeText(-380, 215, 'Summary', 14, { bold: true, color: '#2a9d8f' }),
-  makeText(-380, 245, 'Write a brief summary of the notes above...', 12, { color: '#6c757d', width: 740 }),
-  // Dividing lines
-  makeLine(-100, -270, -100, 200, '#adb5bd', 2),
-  makeLine(-400, 200, 400, 200, '#adb5bd', 2),
-];
+function cornellRuledLines(): CanvasElement[] {
+  const lines: CanvasElement[] = [];
+  const lineColor = '#c8c8c8';
+  const pageLeft = -350;
+  const pageRight = 350;
+  const cueRight = -110;
+  const bodyTop = -260;
+  const bodyBottom = 240;
+  const summaryBottom = 340;
+  const lineSpacing = 28;
+
+  // ── Outer border ──
+  lines.push(makeRect(pageLeft, -320, pageRight, summaryBottom, '#3a3a3a', 2));
+
+  // ── Title row: TOPIC + DATE ──
+  lines.push(makeRect(pageLeft, -320, pageRight, -280, '#3a3a3a', 1));
+  lines.push(makeText(pageLeft + 20, -310, 'TOPIC', 13, { bold: true, color: '#3a3a3a' }));
+  lines.push(makeText(pageRight - 80, -310, 'DATE', 13, { bold: true, color: '#3a3a3a' }));
+  // Separator between topic and date
+  lines.push(makeLine(pageRight - 120, -320, pageRight - 120, -280, '#3a3a3a', 1));
+
+  // ── Vertical divider between Cues and Notes ──
+  lines.push(makeLine(cueRight, -280, cueRight, bodyBottom, '#3a3a3a', 2));
+
+  // ── Horizontal divider above Summary ──
+  lines.push(makeLine(pageLeft, bodyBottom, pageRight, bodyBottom, '#3a3a3a', 2));
+
+  // ── Column headings ──
+  lines.push(makeText(pageLeft + 20, -268, 'CUES', 13, { bold: true, color: '#3a3a3a' }));
+  lines.push(makeText(cueRight + 20, -268, 'NOTES', 13, { bold: true, color: '#3a3a3a' }));
+
+  // ── Ruled lines in Cues column ──
+  for (let y = bodyTop + lineSpacing; y < bodyBottom; y += lineSpacing) {
+    lines.push(makeLine(pageLeft + 10, y, cueRight - 10, y, lineColor, 1));
+  }
+
+  // ── Ruled lines in Notes column ──
+  for (let y = bodyTop + lineSpacing; y < bodyBottom; y += lineSpacing) {
+    lines.push(makeLine(cueRight + 10, y, pageRight - 10, y, lineColor, 1));
+  }
+
+  // ── Summary section ──
+  lines.push(makeText(pageLeft + 20, bodyBottom + 10, 'SUMMARY', 13, { bold: true, color: '#3a3a3a' }));
+  // Ruled lines in summary
+  for (let y = bodyBottom + 40; y < summaryBottom - 5; y += lineSpacing) {
+    lines.push(makeLine(pageLeft + 10, y, pageRight - 10, y, lineColor, 1));
+  }
+
+  return lines;
+}
+const cornellElements: CanvasElement[] = cornellRuledLines();
 
 // ── KWL Chart ──
 const kwlElements: CanvasElement[] = [
