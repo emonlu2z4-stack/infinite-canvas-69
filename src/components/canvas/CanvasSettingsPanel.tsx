@@ -28,6 +28,9 @@ const patterns: { id: CanvasPattern; label: string }[] = [
   { id: 'dots', label: 'Dots' },
   { id: 'lines', label: 'Lines' },
   { id: 'iso', label: 'Iso' },
+  { id: 'cross', label: 'Cross' },
+  { id: 'diamond', label: 'Diamond' },
+  { id: 'hex', label: 'Hex' },
 ];
 
 export default function CanvasSettingsPanel({

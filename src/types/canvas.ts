@@ -75,7 +75,7 @@ export interface BoardMeta {
 }
 
 export type CanvasTheme = 'light' | 'dark' | 'sepia' | 'midnight' | 'sage' | 'rose' | 'ocean' | 'slate';
-export type CanvasPattern = 'none' | 'grid' | 'dots' | 'lines' | 'iso';
+export type CanvasPattern = 'none' | 'grid' | 'dots' | 'lines' | 'iso' | 'cross' | 'diamond' | 'hex';
 
 export interface CanvasSettings {
   canvasTheme: CanvasTheme;
