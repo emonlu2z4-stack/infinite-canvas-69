@@ -550,8 +550,25 @@ export default function WhiteboardCanvas({
         onDrop={handleDrop}
       />
       {isDragOver && (
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center bg-primary/5 border-2 border-dashed border-primary/30 rounded-lg z-40">
-          <p className="text-primary font-medium text-lg">Drop image here</p>
+        <div className="absolute inset-0 pointer-events-none z-40 flex items-center justify-center transition-all duration-200">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-primary/10 backdrop-blur-[2px]" />
+          {/* Animated border */}
+          <div className="absolute inset-4 border-[3px] border-dashed border-primary/50 rounded-2xl animate-pulse" />
+          {/* Center content */}
+          <div className="relative flex flex-col items-center gap-3 bg-background/90 backdrop-blur-sm px-8 py-6 rounded-xl shadow-lg border border-border">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
+            <div className="text-center">
+              <p className="text-foreground font-semibold text-base">Drop image here</p>
+              <p className="text-muted-foreground text-sm mt-0.5">PNG, JPG, SVG, GIF supported</p>
+            </div>
+          </div>
         </div>
       )}
     </div>
