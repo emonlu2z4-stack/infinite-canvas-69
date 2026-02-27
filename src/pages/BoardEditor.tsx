@@ -9,9 +9,10 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useCanvasAnimation } from '@/hooks/useCanvasAnimation';
 import { getBoard, saveBoard, updateBoardThumbnail } from '@/lib/boardStorage';
 import { exportAsPNG, exportAsPDF, generateThumbnail } from '@/lib/exportUtils';
-import type { Point, TextElement, StickyNote, ImageElement } from '@/types/canvas';
+import type { Point, TextElement, StickyNote, ImageElement, CanvasTheme, CanvasPattern } from '@/types/canvas';
 import { ArrowLeft, Download, Save } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
+import CanvasSettingsPanel from '@/components/canvas/CanvasSettingsPanel';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
@@ -35,6 +36,8 @@ const BoardEditor = () => {
   const [textInputPos, setTextInputPos] = useState<Point | null>(null);
   const [stickyInputPos, setStickyInputPos] = useState<Point | null>(null);
   const [boardName, setBoardName] = useState('Untitled');
+  const [canvasTheme, setCanvasTheme] = useState<CanvasTheme>('light');
+  const [canvasPattern, setCanvasPattern] = useState<CanvasPattern>('grid');
   const [loaded, setLoaded] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +51,10 @@ const BoardEditor = () => {
       setElements(board.elements);
       setCamera(board.camera);
       setBoardName(board.meta.name);
+      if (board.settings) {
+        setCanvasTheme(board.settings.canvasTheme);
+        setCanvasPattern(board.settings.pattern);
+      }
       // Trigger entrance animation for template-loaded boards
       if (board.elements.length > 0) {
         setTimeout(() => triggerEntrance(board.elements.map(e => e.id)), 50);
@@ -65,13 +72,14 @@ const BoardEditor = () => {
       if (board) {
         board.elements = elements;
         board.camera = camera;
+        board.settings = { canvasTheme, pattern: canvasPattern };
         const thumb = generateThumbnail(elements);
         if (thumb) board.meta.thumbnail = thumb;
         saveBoard(board);
       }
     }, 1000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [elements, camera, loaded, id]);
+  }, [elements, camera, loaded, id, canvasTheme, canvasPattern]);
 
   const handleZoomIn = useCallback(() => zoom(-1, window.innerWidth / 2, window.innerHeight / 2), [zoom]);
   const handleZoomOut = useCallback(() => zoom(1, window.innerWidth / 2, window.innerHeight / 2), [zoom]);
@@ -186,6 +194,12 @@ const BoardEditor = () => {
 
       {/* Top-right: save + export */}
       <div className="fixed top-4 right-4 z-50 flex items-center gap-1">
+        <CanvasSettingsPanel
+          canvasTheme={canvasTheme}
+          pattern={canvasPattern}
+          onThemeChange={setCanvasTheme}
+          onPatternChange={setCanvasPattern}
+        />
         <ThemeToggle className="bg-toolbar border border-toolbar-border text-toolbar-foreground hover:bg-toolbar-hover toolbar-shadow" />
         <Tooltip>
           <TooltipTrigger asChild>
@@ -255,6 +269,8 @@ const BoardEditor = () => {
         onCommitMove={commitMove}
         onResizeElement={resizeElement}
         animation={animation}
+        canvasTheme={canvasTheme}
+        pattern={canvasPattern}
       />
       {textInputPos && (
         <TextInput

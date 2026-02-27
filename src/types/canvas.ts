@@ -74,10 +74,25 @@ export interface BoardMeta {
   thumbnail?: string;
 }
 
+export type CanvasTheme = 'light' | 'dark' | 'sepia';
+export type CanvasPattern = 'none' | 'grid' | 'dots' | 'lines' | 'iso';
+
+export interface CanvasSettings {
+  canvasTheme: CanvasTheme;
+  pattern: CanvasPattern;
+}
+
+export const CANVAS_THEME_COLORS: Record<CanvasTheme, { bg: string; gridColor: string }> = {
+  light: { bg: '#f5f5f7', gridColor: 'rgba(0,0,0,0.06)' },
+  dark: { bg: '#1e1e2e', gridColor: 'rgba(255,255,255,0.06)' },
+  sepia: { bg: '#f0e6d3', gridColor: 'rgba(120,90,50,0.1)' },
+};
+
 export interface BoardState {
   meta: BoardMeta;
   elements: CanvasElement[];
   camera: Camera;
+  settings?: CanvasSettings;
 }
 
 export const COLORS = [
