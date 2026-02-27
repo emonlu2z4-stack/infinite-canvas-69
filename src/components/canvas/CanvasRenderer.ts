@@ -145,9 +145,9 @@ function drawElement(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   ctx.restore();
 }
 
-function drawPattern(ctx: CanvasRenderingContext2D, camera: Camera, width: number, height: number, pattern: CanvasPattern, gridColor: string) {
+function drawPattern(ctx: CanvasRenderingContext2D, camera: Camera, width: number, height: number, pattern: CanvasPattern, gridColor: string, patternSpacing: number = 40) {
   if (pattern === 'none') return;
-  const spacing = 40;
+  const spacing = patternSpacing;
   ctx.save();
   ctx.strokeStyle = gridColor;
   ctx.fillStyle = gridColor;
@@ -256,6 +256,7 @@ interface CanvasRendererProps {
   animation?: ElementAnimation;
   canvasTheme?: CanvasTheme;
   pattern?: CanvasPattern;
+  patternSpacing?: number;
 }
 
 function getElementBounds(el: CanvasElement): { x: number; y: number; w: number; h: number } | null {
@@ -306,7 +307,7 @@ function drawSelectionBox(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   ctx.restore();
 }
 
-export function useCanvasRenderer({ canvasRef, elements, camera, width, height, activeElement, selectedElementId, animation, canvasTheme = 'light', pattern = 'grid' }: CanvasRendererProps) {
+export function useCanvasRenderer({ canvasRef, elements, camera, width, height, activeElement, selectedElementId, animation, canvasTheme = 'light', pattern = 'grid', patternSpacing = 40 }: CanvasRendererProps) {
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -330,7 +331,7 @@ export function useCanvasRenderer({ canvasRef, elements, camera, width, height, 
     ctx.translate(camera.x, camera.y);
     ctx.scale(camera.zoom, camera.zoom);
 
-    drawPattern(ctx, camera, width, height, pattern, themeColors.gridColor);
+    drawPattern(ctx, camera, width, height, pattern, themeColors.gridColor, patternSpacing);
 
     elements.forEach(el => {
       const progress = animation?.progress.get(el.id);

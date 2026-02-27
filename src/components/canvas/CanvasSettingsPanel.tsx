@@ -2,13 +2,16 @@ import React from 'react';
 import { Settings2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Slider } from '@/components/ui/slider';
 import type { CanvasTheme, CanvasPattern } from '@/types/canvas';
 
 interface CanvasSettingsPanelProps {
   canvasTheme: CanvasTheme;
   pattern: CanvasPattern;
+  patternSpacing: number;
   onThemeChange: (t: CanvasTheme) => void;
   onPatternChange: (p: CanvasPattern) => void;
+  onPatternSpacingChange: (s: number) => void;
 }
 
 const themes: { id: CanvasTheme; bg: string; border: string }[] = [
@@ -34,7 +37,7 @@ const patterns: { id: CanvasPattern; label: string }[] = [
 ];
 
 export default function CanvasSettingsPanel({
-  canvasTheme, pattern, onThemeChange, onPatternChange,
+  canvasTheme, pattern, patternSpacing, onThemeChange, onPatternChange, onPatternSpacingChange,
 }: CanvasSettingsPanelProps) {
   return (
     <Popover>
@@ -49,7 +52,7 @@ export default function CanvasSettingsPanel({
         <TooltipContent side="bottom" className="text-xs">Canvas Settings</TooltipContent>
       </Tooltip>
 
-      <PopoverContent align="end" className="w-52 p-4 space-y-4">
+      <PopoverContent align="end" className="w-56 p-4 space-y-4">
         {/* Theme swatches */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Theme</p>
@@ -89,6 +92,28 @@ export default function CanvasSettingsPanel({
             ))}
           </div>
         </div>
+
+        {/* Pattern spacing slider */}
+        {pattern !== 'none' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-muted-foreground">Density</p>
+              <span className="text-xs text-muted-foreground tabular-nums">{patternSpacing}px</span>
+            </div>
+            <Slider
+              min={15}
+              max={80}
+              step={1}
+              value={[patternSpacing]}
+              onValueChange={([v]) => onPatternSpacingChange(v)}
+              className="w-full"
+            />
+            <div className="flex justify-between mt-1">
+              <span className="text-[10px] text-muted-foreground">Dense</span>
+              <span className="text-[10px] text-muted-foreground">Sparse</span>
+            </div>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
