@@ -72,6 +72,20 @@ export default function WhiteboardCanvas({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Track mouse position for paste-at-cursor
+  const lastMousePos = useRef<Point>({ x: size.width / 2, y: size.height / 2 });
+  const handleMouseMoveTrack = useCallback((e: MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect) {
+      lastMousePos.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMoveTrack);
+    return () => window.removeEventListener('mousemove', handleMouseMoveTrack);
+  }, [handleMouseMoveTrack]);
+
   // Clipboard paste support for images
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
@@ -83,10 +97,7 @@ export default function WhiteboardCanvas({
           e.preventDefault();
           const file = item.getAsFile();
           if (file && onImageDrop) {
-            // Place at center of current viewport
-            const centerX = size.width / 2;
-            const centerY = size.height / 2;
-            const canvasPoint = screenToCanvas(centerX, centerY);
+            const canvasPoint = screenToCanvas(lastMousePos.current.x, lastMousePos.current.y);
             onImageDrop(file, canvasPoint);
           }
           break;
@@ -95,7 +106,7 @@ export default function WhiteboardCanvas({
     };
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [onImageDrop, screenToCanvas, size.width, size.height]);
+  }, [onImageDrop, screenToCanvas]);
 
   const activeElement = currentStroke || currentShape || null;
 
