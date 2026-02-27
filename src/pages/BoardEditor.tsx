@@ -8,7 +8,7 @@ import { useCanvas } from '@/hooks/useCanvas';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useCanvasAnimation } from '@/hooks/useCanvasAnimation';
 import { getBoard, saveBoard, updateBoardThumbnail } from '@/lib/boardStorage';
-import { exportAsPNG, exportAsPDF, generateThumbnail } from '@/lib/exportUtils';
+import { exportAsPNG, exportAsPDF, exportAsJSON, generateThumbnail } from '@/lib/exportUtils';
 import type { Point, TextElement, StickyNote, ImageElement, CanvasTheme, CanvasPattern } from '@/types/canvas';
 import { ArrowLeft, Download, Save } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -241,6 +241,9 @@ const BoardEditor = () => {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => exportAsPDF(elements, boardName)}>
               Export as PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => exportAsJSON(elements, boardName)}>
+              Export as JSON
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

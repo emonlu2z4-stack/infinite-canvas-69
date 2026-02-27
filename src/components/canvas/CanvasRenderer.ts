@@ -5,12 +5,20 @@ import type { ElementAnimation } from '@/hooks/useCanvasAnimation';
 
 // Cache loaded HTMLImageElement objects by src
 const imageCache = new Map<string, HTMLImageElement>();
+let onImageLoadedCallback: (() => void) | null = null;
+
+export function setImageLoadedCallback(cb: (() => void) | null) {
+  onImageLoadedCallback = cb;
+}
 
 function getOrLoadImage(src: string): HTMLImageElement | null {
   if (imageCache.has(src)) return imageCache.get(src)!;
   const img = new Image();
   img.src = src;
-  img.onload = () => imageCache.set(src, img);
+  img.onload = () => {
+    imageCache.set(src, img);
+    onImageLoadedCallback?.();
+  };
   if (img.complete) {
     imageCache.set(src, img);
     return img;
@@ -422,6 +430,12 @@ export function useCanvasRenderer({ canvasRef, elements, camera, width, height, 
   useEffect(() => {
     const id = requestAnimationFrame(render);
     return () => cancelAnimationFrame(id);
+  }, [render]);
+
+  // Re-render when async images finish loading
+  useEffect(() => {
+    setImageLoadedCallback(() => render());
+    return () => setImageLoadedCallback(null);
   }, [render]);
 
   return { render };
