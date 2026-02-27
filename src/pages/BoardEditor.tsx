@@ -38,6 +38,7 @@ const BoardEditor = () => {
   const [boardName, setBoardName] = useState('Untitled');
   const [canvasTheme, setCanvasTheme] = useState<CanvasTheme>('light');
   const [canvasPattern, setCanvasPattern] = useState<CanvasPattern>('grid');
+  const [patternSpacing, setPatternSpacing] = useState(40);
   const [loaded, setLoaded] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,6 +55,7 @@ const BoardEditor = () => {
       if (board.settings) {
         setCanvasTheme(board.settings.canvasTheme);
         setCanvasPattern(board.settings.pattern);
+        if (board.settings.patternSpacing) setPatternSpacing(board.settings.patternSpacing);
       }
       // Trigger entrance animation for template-loaded boards
       if (board.elements.length > 0) {
@@ -72,14 +74,14 @@ const BoardEditor = () => {
       if (board) {
         board.elements = elements;
         board.camera = camera;
-        board.settings = { canvasTheme, pattern: canvasPattern };
+        board.settings = { canvasTheme, pattern: canvasPattern, patternSpacing };
         const thumb = generateThumbnail(elements);
         if (thumb) board.meta.thumbnail = thumb;
         saveBoard(board);
       }
     }, 1000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [elements, camera, loaded, id, canvasTheme, canvasPattern]);
+  }, [elements, camera, loaded, id, canvasTheme, canvasPattern, patternSpacing]);
 
   const handleZoomIn = useCallback(() => zoom(-1, window.innerWidth / 2, window.innerHeight / 2), [zoom]);
   const handleZoomOut = useCallback(() => zoom(1, window.innerWidth / 2, window.innerHeight / 2), [zoom]);
@@ -197,8 +199,10 @@ const BoardEditor = () => {
         <CanvasSettingsPanel
           canvasTheme={canvasTheme}
           pattern={canvasPattern}
+          patternSpacing={patternSpacing}
           onThemeChange={setCanvasTheme}
           onPatternChange={setCanvasPattern}
+          onPatternSpacingChange={setPatternSpacing}
         />
         <ThemeToggle className="bg-toolbar border border-toolbar-border text-toolbar-foreground hover:bg-toolbar-hover toolbar-shadow" />
         <Tooltip>
@@ -271,6 +275,7 @@ const BoardEditor = () => {
         animation={animation}
         canvasTheme={canvasTheme}
         pattern={canvasPattern}
+        patternSpacing={patternSpacing}
       />
       {textInputPos && (
         <TextInput

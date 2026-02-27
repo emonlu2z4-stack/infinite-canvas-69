@@ -26,6 +26,7 @@ interface WhiteboardCanvasProps {
   animation?: ElementAnimation;
   canvasTheme?: CanvasTheme;
   pattern?: CanvasPattern;
+  patternSpacing?: number;
 }
 
 export default function WhiteboardCanvas({
@@ -36,6 +37,7 @@ export default function WhiteboardCanvas({
   animation,
   canvasTheme,
   pattern,
+  patternSpacing,
 }: WhiteboardCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const containerRef = useRef<HTMLDivElement>(null!);
@@ -70,6 +72,7 @@ export default function WhiteboardCanvas({
     animation,
     canvasTheme,
     pattern,
+    patternSpacing,
   });
 
   const getCanvasPointFromXY = useCallback((clientX: number, clientY: number) => {

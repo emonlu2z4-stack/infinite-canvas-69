@@ -80,6 +80,7 @@ export type CanvasPattern = 'none' | 'grid' | 'dots' | 'lines' | 'iso' | 'cross'
 export interface CanvasSettings {
   canvasTheme: CanvasTheme;
   pattern: CanvasPattern;
+  patternSpacing: number;
 }
 
 export const CANVAS_THEME_COLORS: Record<CanvasTheme, { bg: string; gridColor: string }> = {
