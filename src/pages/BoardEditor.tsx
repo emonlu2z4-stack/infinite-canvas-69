@@ -140,12 +140,8 @@ const BoardEditor = () => {
 
   const handleImageImport = useCallback(() => {
     pendingImagePos.current = null;
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleImageAdd = useCallback((pos: Point) => {
-    pendingImagePos.current = pos;
-    fileInputRef.current?.click();
+    // Small delay to ensure the click event doesn't interfere
+    setTimeout(() => fileInputRef.current?.click(), 50);
   }, []);
 
   useKeyboardShortcuts({
@@ -287,7 +283,7 @@ const BoardEditor = () => {
         onTextAdd={handleTextAdd}
         onStickyAdd={handleStickyAdd}
         onImageDrop={handleImageDrop}
-        onImageAdd={handleImageAdd}
+        onImageAdd={handleImageImport}
         selectedElementId={selectedElementId}
         onSelectElement={setSelectedElementId}
         onMoveElement={moveElement}

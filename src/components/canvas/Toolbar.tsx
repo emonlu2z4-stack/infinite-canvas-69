@@ -44,7 +44,6 @@ const tools: { id: Tool; icon: React.ElementType; label: string; shortcut: strin
   { id: 'line', icon: Minus, label: 'Line', shortcut: 'L' },
   { id: 'text', icon: Type, label: 'Text', shortcut: 'T' },
   { id: 'sticky', icon: StickyNote, label: 'Sticky Note', shortcut: 'S' },
-  { id: 'image', icon: ImagePlus, label: 'Image', shortcut: 'I' },
 ];
 
 const FILL_COLORS = ['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff', '#000000'];
@@ -82,6 +81,21 @@ export default function Toolbar({
           </TooltipContent>
         </Tooltip>
       ))}
+
+      {/* Image import button — opens file picker immediately */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => onImageImport?.()}
+            className="p-2 rounded-lg transition-all duration-150 text-toolbar-foreground hover:bg-toolbar-hover"
+          >
+            <ImagePlus size={18} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">
+          Image <kbd className="ml-1 px-1 py-0.5 rounded bg-muted text-muted-foreground text-[10px]">I</kbd>
+        </TooltipContent>
+      </Tooltip>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
