@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
-import type { CanvasElement, Camera, ImageElement } from '@/types/canvas';
+import type { CanvasElement, Camera, ImageElement, CanvasTheme, CanvasPattern } from '@/types/canvas';
+import { CANVAS_THEME_COLORS } from '@/types/canvas';
 import type { ElementAnimation } from '@/hooks/useCanvasAnimation';
 
 // Cache loaded HTMLImageElement objects by src
@@ -144,29 +145,55 @@ function drawElement(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   ctx.restore();
 }
 
-function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, width: number, height: number) {
-  const gridSize = 40;
+function drawPattern(ctx: CanvasRenderingContext2D, camera: Camera, width: number, height: number, pattern: CanvasPattern, gridColor: string) {
+  if (pattern === 'none') return;
+  const spacing = 40;
   ctx.save();
-  ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+  ctx.strokeStyle = gridColor;
+  ctx.fillStyle = gridColor;
   ctx.lineWidth = 1;
 
-  const startX = Math.floor(-camera.x / camera.zoom / gridSize) * gridSize;
-  const startY = Math.floor(-camera.y / camera.zoom / gridSize) * gridSize;
-  const endX = startX + width / camera.zoom + gridSize * 2;
-  const endY = startY + height / camera.zoom + gridSize * 2;
+  const startX = Math.floor(-camera.x / camera.zoom / spacing) * spacing;
+  const startY = Math.floor(-camera.y / camera.zoom / spacing) * spacing;
+  const endX = startX + width / camera.zoom + spacing * 2;
+  const endY = startY + height / camera.zoom + spacing * 2;
 
-  for (let x = startX; x < endX; x += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(x, startY);
-    ctx.lineTo(x, endY);
-    ctx.stroke();
+  if (pattern === 'grid') {
+    for (let x = startX; x < endX; x += spacing) {
+      ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
+    }
+    for (let y = startY; y < endY; y += spacing) {
+      ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke();
+    }
   }
-  for (let y = startY; y < endY; y += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(startX, y);
-    ctx.lineTo(endX, y);
-    ctx.stroke();
+
+  if (pattern === 'dots') {
+    const r = 1.5;
+    for (let x = startX; x < endX; x += spacing) {
+      for (let y = startY; y < endY; y += spacing) {
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      }
+    }
   }
+
+  if (pattern === 'lines') {
+    for (let y = startY; y < endY; y += spacing) {
+      ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke();
+    }
+  }
+
+  if (pattern === 'iso') {
+    const h = spacing * Math.sqrt(3) / 2;
+    ctx.lineWidth = 0.7;
+    for (let x = startX - (endY - startY); x < endX + (endY - startY); x += spacing) {
+      ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x + (endY - startY) / Math.tan(Math.PI / 3), endY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x - (endY - startY) / Math.tan(Math.PI / 3), endY); ctx.stroke();
+    }
+    for (let y = startY; y < endY; y += h) {
+      ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke();
+    }
+  }
+
   ctx.restore();
 }
 
@@ -179,6 +206,8 @@ interface CanvasRendererProps {
   activeElement?: CanvasElement | null;
   selectedElementId?: string | null;
   animation?: ElementAnimation;
+  canvasTheme?: CanvasTheme;
+  pattern?: CanvasPattern;
 }
 
 function getElementBounds(el: CanvasElement): { x: number; y: number; w: number; h: number } | null {
@@ -229,7 +258,7 @@ function drawSelectionBox(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   ctx.restore();
 }
 
-export function useCanvasRenderer({ canvasRef, elements, camera, width, height, activeElement, selectedElementId, animation }: CanvasRendererProps) {
+export function useCanvasRenderer({ canvasRef, elements, camera, width, height, activeElement, selectedElementId, animation, canvasTheme = 'light', pattern = 'grid' }: CanvasRendererProps) {
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -245,16 +274,15 @@ export function useCanvasRenderer({ canvasRef, elements, camera, width, height, 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
 
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--canvas')
-      ? `hsl(${getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim()})`
-      : '#f5f5f7';
+    const themeColors = CANVAS_THEME_COLORS[canvasTheme];
+    ctx.fillStyle = themeColors.bg;
     ctx.fillRect(0, 0, width, height);
 
     ctx.save();
     ctx.translate(camera.x, camera.y);
     ctx.scale(camera.zoom, camera.zoom);
 
-    drawGrid(ctx, camera, width, height);
+    drawPattern(ctx, camera, width, height, pattern, themeColors.gridColor);
 
     elements.forEach(el => {
       const progress = animation?.progress.get(el.id);
@@ -284,7 +312,7 @@ export function useCanvasRenderer({ canvasRef, elements, camera, width, height, 
     }
 
     ctx.restore();
-  }, [canvasRef, elements, camera, width, height, activeElement, selectedElementId, animation]);
+  }, [canvasRef, elements, camera, width, height, activeElement, selectedElementId, animation, canvasTheme, pattern]);
 
   useEffect(() => {
     const id = requestAnimationFrame(render);
