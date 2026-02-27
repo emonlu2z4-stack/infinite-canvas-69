@@ -43,6 +43,16 @@ function drawElement(ctx: CanvasRenderingContext2D, el: CanvasElement) {
     ctx.stroke();
   }
 
+  if (el.type === 'rectangle' || el.type === 'circle' || el.type === 'arrow' || el.type === 'line') {
+    if (el.rotation) {
+      const cx = (el.start.x + el.end.x) / 2;
+      const cy = (el.start.y + el.end.y) / 2;
+      ctx.translate(cx, cy);
+      ctx.rotate(el.rotation);
+      ctx.translate(-cx, -cy);
+    }
+  }
+
   if (el.type === 'rectangle') {
     ctx.strokeStyle = el.color;
     ctx.lineWidth = el.size;
@@ -51,8 +61,16 @@ function drawElement(ctx: CanvasRenderingContext2D, el: CanvasElement) {
     const y = Math.min(el.start.y, el.end.y);
     const w = Math.abs(el.end.x - el.start.x);
     const h = Math.abs(el.end.y - el.start.y);
-    if (el.fill) { ctx.fillStyle = el.fill; ctx.fillRect(x, y, w, h); }
-    ctx.strokeRect(x, y, w, h);
+    const r = el.borderRadius ?? 0;
+    if (r > 0) {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, Math.min(r, Math.min(w, h) / 2));
+      if (el.fill) { ctx.fillStyle = el.fill; ctx.fill(); }
+      ctx.stroke();
+    } else {
+      if (el.fill) { ctx.fillStyle = el.fill; ctx.fillRect(x, y, w, h); }
+      ctx.strokeRect(x, y, w, h);
+    }
   }
 
   if (el.type === 'circle') {
@@ -87,7 +105,6 @@ function drawElement(ctx: CanvasRenderingContext2D, el: CanvasElement) {
     ctx.moveTo(el.start.x, el.start.y);
     ctx.lineTo(el.end.x, el.end.y);
     ctx.stroke();
-    // arrowhead
     const angle = Math.atan2(el.end.y - el.start.y, el.end.x - el.start.x);
     const headLen = Math.max(10, el.size * 4);
     ctx.beginPath();
@@ -288,6 +305,17 @@ function drawSelectionBox(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   if (!bounds) return;
   const pad = 6;
   ctx.save();
+
+  // Apply rotation for shapes
+  const rotation = (el.type === 'rectangle' || el.type === 'circle' || el.type === 'arrow' || el.type === 'line') ? (el.rotation ?? 0) : 0;
+  if (rotation) {
+    const cx = bounds.x + bounds.w / 2;
+    const cy = bounds.y + bounds.h / 2;
+    ctx.translate(cx, cy);
+    ctx.rotate(rotation);
+    ctx.translate(-cx, -cy);
+  }
+
   ctx.strokeStyle = '#3b82f6';
   ctx.lineWidth = 2;
   ctx.setLineDash([6, 3]);
@@ -308,6 +336,30 @@ function drawSelectionBox(ctx: CanvasRenderingContext2D, el: CanvasElement) {
     ctx.fillRect(cx - size / 2, cy - size / 2, size, size);
     ctx.strokeRect(cx - size / 2, cy - size / 2, size, size);
   });
+
+  // Rotation handle (circle above top-center)
+  if (el.type === 'rectangle' || el.type === 'circle' || el.type === 'arrow' || el.type === 'line') {
+    const topCenterX = bounds.x + bounds.w / 2;
+    const topCenterY = bounds.y - pad;
+    const rotHandleY = topCenterY - 25;
+    // Line from top center to rotation handle
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(topCenterX, topCenterY);
+    ctx.lineTo(topCenterX, rotHandleY);
+    ctx.stroke();
+    // Rotation circle
+    ctx.beginPath();
+    ctx.arc(topCenterX, rotHandleY, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
   ctx.restore();
 }
 

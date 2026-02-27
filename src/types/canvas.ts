@@ -22,6 +22,8 @@ export interface ShapeElement {
   color: string;
   size: number;
   fill?: string;
+  borderRadius?: number;
+  rotation?: number; // radians
 }
 
 export interface TextElement {

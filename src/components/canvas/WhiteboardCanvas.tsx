@@ -8,6 +8,8 @@ interface WhiteboardCanvasProps {
   activeTool: Tool;
   color: string;
   brushSize: number;
+  fillColor: string;
+  borderRadius: number;
   camera: { x: number; y: number; zoom: number };
   onAddElement: (el: CanvasElement) => void;
   onEraseAt: (point: Point, radius: number) => void;
@@ -23,6 +25,7 @@ interface WhiteboardCanvasProps {
   onMoveElement?: (id: string, dx: number, dy: number) => void;
   onCommitMove?: () => void;
   onResizeElement?: (id: string, handle: string, dx: number, dy: number) => void;
+  onRotateElement?: (id: string, angle: number) => void;
   animation?: ElementAnimation;
   canvasTheme?: CanvasTheme;
   pattern?: CanvasPattern;
@@ -32,10 +35,10 @@ interface WhiteboardCanvasProps {
 }
 
 export default function WhiteboardCanvas({
-  elements, activeTool, color, brushSize,
+  elements, activeTool, color, brushSize, fillColor, borderRadius,
   camera, onAddElement, onEraseAt, onZoom, onPan,
   screenToCanvas, onTextAdd, onStickyAdd, onImageDrop, onImageAdd,
-  selectedElementId, onSelectElement, onMoveElement, onCommitMove, onResizeElement,
+  selectedElementId, onSelectElement, onMoveElement, onCommitMove, onResizeElement, onRotateElement,
   animation,
   canvasTheme,
   pattern,
@@ -54,6 +57,9 @@ export default function WhiteboardCanvas({
   const [isDragOver, setIsDragOver] = useState(false);
   const isDraggingElement = useRef(false);
   const isResizing = useRef(false);
+  const isRotating = useRef(false);
+  const rotateStartAngle = useRef(0);
+  const rotateInitialRotation = useRef(0);
   const resizeHandle = useRef<string>('');
   const dragLastPos = useRef<Point>({ x: 0, y: 0 });
   const lastTouchDist = useRef<number>(0);
@@ -129,6 +135,19 @@ export default function WhiteboardCanvas({
     return null;
   }, [elements, selectedElementId]);
 
+  const hitTestRotationHandle = useCallback((point: Point): boolean => {
+    if (!selectedElementId) return false;
+    const sel = elements.find(e => e.id === selectedElementId);
+    if (!sel) return false;
+    if (sel.type !== 'rectangle' && sel.type !== 'circle' && sel.type !== 'arrow' && sel.type !== 'line') return false;
+    const bounds = getElementBounds(sel);
+    if (!bounds) return false;
+    const pad = 6;
+    const topCenterX = bounds.x + bounds.w / 2;
+    const rotHandleY = bounds.y - pad - 25;
+    return Math.hypot(point.x - topCenterX, point.y - rotHandleY) <= 10;
+  }, [elements, selectedElementId]);
+
   const handlePointerDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 1) {
       setIsPanning(true);
@@ -141,7 +160,23 @@ export default function WhiteboardCanvas({
     const point = getCanvasPoint(e);
 
     if (activeTool === 'select') {
-      // Check resize handles first
+      // Check rotation handle first
+      if (hitTestRotationHandle(point)) {
+        const sel = elements.find(e => e.id === selectedElementId);
+        if (sel) {
+          isRotating.current = true;
+          const bounds = getElementBounds(sel);
+          if (bounds) {
+            const cx = bounds.x + bounds.w / 2;
+            const cy = bounds.y + bounds.h / 2;
+            rotateStartAngle.current = Math.atan2(point.y - cy, point.x - cx);
+            rotateInitialRotation.current = (sel as ShapeElement).rotation ?? 0;
+          }
+          return;
+        }
+      }
+
+      // Check resize handles
       const handle = hitTestResizeHandle(point);
       if (handle) {
         isResizing.current = true;
@@ -205,11 +240,13 @@ export default function WhiteboardCanvas({
         end: point,
         color,
         size: brushSize,
+        fill: fillColor || undefined,
+        borderRadius: activeTool === 'rectangle' ? borderRadius : undefined,
       };
       setCurrentShape(shape);
       setIsDrawing(true);
     }
-  }, [activeTool, color, brushSize, getCanvasPoint, onEraseAt, onTextAdd, onStickyAdd, hitTestElement, hitTestResizeHandle, onSelectElement]);
+  }, [activeTool, color, brushSize, fillColor, borderRadius, getCanvasPoint, onEraseAt, onTextAdd, onStickyAdd, hitTestElement, hitTestResizeHandle, hitTestRotationHandle, onSelectElement, selectedElementId, elements]);
 
   const handlePointerMove = useCallback((e: React.MouseEvent) => {
     if (isPanning) {
@@ -217,6 +254,22 @@ export default function WhiteboardCanvas({
       const dy = e.clientY - lastPanPos.current.y;
       lastPanPos.current = { x: e.clientX, y: e.clientY };
       onPan(dx, dy);
+      return;
+    }
+
+    if (isRotating.current && selectedElementId) {
+      const point = getCanvasPoint(e);
+      const sel = elements.find(el => el.id === selectedElementId);
+      if (sel) {
+        const bounds = getElementBounds(sel);
+        if (bounds) {
+          const cx = bounds.x + bounds.w / 2;
+          const cy = bounds.y + bounds.h / 2;
+          const currentAngle = Math.atan2(point.y - cy, point.x - cx);
+          const newRotation = rotateInitialRotation.current + (currentAngle - rotateStartAngle.current);
+          onRotateElement?.(selectedElementId, newRotation);
+        }
+      }
       return;
     }
 
@@ -250,9 +303,14 @@ export default function WhiteboardCanvas({
     if (activeTool === 'eraser') {
       onEraseAt(point, brushSize * 3);
     }
-  }, [isPanning, isDrawing, currentStroke, currentShape, activeTool, brushSize, getCanvasPoint, onPan, onEraseAt, selectedElementId, onMoveElement, onResizeElement]);
+  }, [isPanning, isDrawing, currentStroke, currentShape, activeTool, brushSize, getCanvasPoint, onPan, onEraseAt, selectedElementId, onMoveElement, onResizeElement, onRotateElement, elements]);
 
   const handlePointerUp = useCallback(() => {
+    if (isRotating.current) {
+      isRotating.current = false;
+      onCommitMove?.();
+      return;
+    }
     if (isResizing.current) {
       isResizing.current = false;
       resizeHandle.current = '';
@@ -387,6 +445,8 @@ export default function WhiteboardCanvas({
           end: point,
           color,
           size: brushSize,
+          fill: fillColor || undefined,
+          borderRadius: activeTool === 'rectangle' ? borderRadius : undefined,
         };
         setCurrentShape(shape);
         setIsDrawing(true);

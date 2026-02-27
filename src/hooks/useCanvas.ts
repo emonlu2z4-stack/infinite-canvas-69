@@ -238,6 +238,24 @@ export function useCanvas() {
     }));
   }, []);
 
+  const rotateElement = useCallback((id: string, angle: number) => {
+    setElements(prev => prev.map(el => {
+      if (el.id !== id) return el;
+      if (el.type === 'rectangle' || el.type === 'circle' || el.type === 'arrow' || el.type === 'line') {
+        return { ...el, rotation: angle };
+      }
+      return el;
+    }));
+  }, []);
+
+  const updateElementProperty = useCallback((id: string, props: Record<string, unknown>) => {
+    setElements(prev => {
+      const next = prev.map(el => el.id === id ? { ...el, ...props } as CanvasElement : el);
+      pushHistory(next);
+      return next;
+    });
+  }, [pushHistory]);
+
   return {
     elements, setElements, camera, setCamera,
     activeTool, setActiveTool, color, setColor: handleColorChange,
@@ -248,5 +266,6 @@ export function useCanvas() {
     canRedo: historyIndex < history.length - 1,
     selectedElementId, setSelectedElementId,
     moveElement, commitMove, deleteSelected, resizeElement,
+    rotateElement, updateElementProperty,
   };
 }
