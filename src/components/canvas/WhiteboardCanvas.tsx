@@ -72,6 +72,31 @@ export default function WhiteboardCanvas({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Clipboard paste support for images
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file && onImageDrop) {
+            // Place at center of current viewport
+            const centerX = size.width / 2;
+            const centerY = size.height / 2;
+            const canvasPoint = screenToCanvas(centerX, centerY);
+            onImageDrop(file, canvasPoint);
+          }
+          break;
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [onImageDrop, screenToCanvas, size.width, size.height]);
+
   const activeElement = currentStroke || currentShape || null;
 
   useCanvasRenderer({
