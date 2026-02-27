@@ -145,12 +145,14 @@ function drawElement(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   ctx.restore();
 }
 
-function drawPattern(ctx: CanvasRenderingContext2D, camera: Camera, width: number, height: number, pattern: CanvasPattern, gridColor: string, patternSpacing: number = 40) {
+function drawPattern(ctx: CanvasRenderingContext2D, camera: Camera, width: number, height: number, pattern: CanvasPattern, gridColor: string, patternSpacing: number = 40, patternOpacity: number = 1, patternColor: string = '') {
   if (pattern === 'none') return;
   const spacing = patternSpacing;
   ctx.save();
-  ctx.strokeStyle = gridColor;
-  ctx.fillStyle = gridColor;
+  const color = patternColor || gridColor;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.globalAlpha = patternOpacity;
   ctx.lineWidth = 1;
 
   const startX = Math.floor(-camera.x / camera.zoom / spacing) * spacing;
@@ -257,6 +259,8 @@ interface CanvasRendererProps {
   canvasTheme?: CanvasTheme;
   pattern?: CanvasPattern;
   patternSpacing?: number;
+  patternOpacity?: number;
+  patternColor?: string;
 }
 
 function getElementBounds(el: CanvasElement): { x: number; y: number; w: number; h: number } | null {
@@ -307,7 +311,7 @@ function drawSelectionBox(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   ctx.restore();
 }
 
-export function useCanvasRenderer({ canvasRef, elements, camera, width, height, activeElement, selectedElementId, animation, canvasTheme = 'light', pattern = 'grid', patternSpacing = 40 }: CanvasRendererProps) {
+export function useCanvasRenderer({ canvasRef, elements, camera, width, height, activeElement, selectedElementId, animation, canvasTheme = 'light', pattern = 'grid', patternSpacing = 40, patternOpacity = 1, patternColor = '' }: CanvasRendererProps) {
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -331,7 +335,7 @@ export function useCanvasRenderer({ canvasRef, elements, camera, width, height, 
     ctx.translate(camera.x, camera.y);
     ctx.scale(camera.zoom, camera.zoom);
 
-    drawPattern(ctx, camera, width, height, pattern, themeColors.gridColor, patternSpacing);
+    drawPattern(ctx, camera, width, height, pattern, themeColors.gridColor, patternSpacing, patternOpacity, patternColor);
 
     elements.forEach(el => {
       const progress = animation?.progress.get(el.id);
