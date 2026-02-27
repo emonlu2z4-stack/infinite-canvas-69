@@ -74,7 +74,7 @@ export interface BoardMeta {
   thumbnail?: string;
 }
 
-export type CanvasTheme = 'light' | 'dark' | 'sepia';
+export type CanvasTheme = 'light' | 'dark' | 'sepia' | 'midnight' | 'sage' | 'rose' | 'ocean' | 'slate';
 export type CanvasPattern = 'none' | 'grid' | 'dots' | 'lines' | 'iso';
 
 export interface CanvasSettings {
@@ -83,9 +83,14 @@ export interface CanvasSettings {
 }
 
 export const CANVAS_THEME_COLORS: Record<CanvasTheme, { bg: string; gridColor: string }> = {
-  light: { bg: '#f5f5f7', gridColor: 'rgba(0,0,0,0.06)' },
-  dark: { bg: '#1e1e2e', gridColor: 'rgba(255,255,255,0.06)' },
-  sepia: { bg: '#f0e6d3', gridColor: 'rgba(120,90,50,0.1)' },
+  light:    { bg: '#f5f5f7', gridColor: 'rgba(0,0,0,0.06)' },
+  dark:     { bg: '#1e1e2e', gridColor: 'rgba(255,255,255,0.06)' },
+  sepia:    { bg: '#f0e6d3', gridColor: 'rgba(120,90,50,0.10)' },
+  midnight: { bg: '#0f172a', gridColor: 'rgba(148,163,184,0.08)' },
+  sage:     { bg: '#e8ede5', gridColor: 'rgba(60,80,50,0.08)' },
+  rose:     { bg: '#f5e6e8', gridColor: 'rgba(140,60,70,0.08)' },
+  ocean:    { bg: '#e0edf4', gridColor: 'rgba(30,80,120,0.08)' },
+  slate:    { bg: '#e2e4e9', gridColor: 'rgba(50,55,70,0.08)' },
 };
 
 export interface BoardState {
