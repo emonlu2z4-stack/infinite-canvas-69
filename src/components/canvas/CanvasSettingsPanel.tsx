@@ -9,10 +9,26 @@ interface CanvasSettingsPanelProps {
   canvasTheme: CanvasTheme;
   pattern: CanvasPattern;
   patternSpacing: number;
+  patternOpacity: number;
+  patternColor: string;
   onThemeChange: (t: CanvasTheme) => void;
   onPatternChange: (p: CanvasPattern) => void;
   onPatternSpacingChange: (s: number) => void;
+  onPatternOpacityChange: (o: number) => void;
+  onPatternColorChange: (c: string) => void;
 }
+
+const PATTERN_COLORS = [
+  { id: '', label: 'Auto', color: '' },
+  { id: '#000000', label: '', color: '#000000' },
+  { id: '#6b7280', label: '', color: '#6b7280' },
+  { id: '#3b82f6', label: '', color: '#3b82f6' },
+  { id: '#8b5cf6', label: '', color: '#8b5cf6' },
+  { id: '#ef4444', label: '', color: '#ef4444' },
+  { id: '#f97316', label: '', color: '#f97316' },
+  { id: '#22c55e', label: '', color: '#22c55e' },
+  { id: '#ffffff', label: '', color: '#ffffff' },
+];
 
 const themes: { id: CanvasTheme; bg: string; border: string }[] = [
   { id: 'light',    bg: '#f5f5f7', border: '#d4d4d8' },
@@ -37,7 +53,8 @@ const patterns: { id: CanvasPattern; label: string }[] = [
 ];
 
 export default function CanvasSettingsPanel({
-  canvasTheme, pattern, patternSpacing, onThemeChange, onPatternChange, onPatternSpacingChange,
+  canvasTheme, pattern, patternSpacing, patternOpacity, patternColor,
+  onThemeChange, onPatternChange, onPatternSpacingChange, onPatternOpacityChange, onPatternColorChange,
 }: CanvasSettingsPanelProps) {
   return (
     <Popover>
@@ -52,7 +69,7 @@ export default function CanvasSettingsPanel({
         <TooltipContent side="bottom" className="text-xs">Canvas Settings</TooltipContent>
       </Tooltip>
 
-      <PopoverContent align="end" className="w-56 p-4 space-y-4">
+      <PopoverContent align="end" className="w-60 p-4 space-y-4 max-h-[80vh] overflow-y-auto">
         {/* Theme swatches */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Theme</p>
@@ -93,7 +110,6 @@ export default function CanvasSettingsPanel({
           </div>
         </div>
 
-        {/* Pattern spacing slider */}
         {pattern !== 'none' && (
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -111,6 +127,50 @@ export default function CanvasSettingsPanel({
             <div className="flex justify-between mt-1">
               <span className="text-[10px] text-muted-foreground">Dense</span>
               <span className="text-[10px] text-muted-foreground">Sparse</span>
+            </div>
+          </div>
+        )}
+
+        {/* Opacity slider */}
+        {pattern !== 'none' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-muted-foreground">Opacity</p>
+              <span className="text-xs text-muted-foreground tabular-nums">{Math.round(patternOpacity * 100)}%</span>
+            </div>
+            <Slider
+              min={5}
+              max={100}
+              step={1}
+              value={[Math.round(patternOpacity * 100)]}
+              onValueChange={([v]) => onPatternOpacityChange(v / 100)}
+              className="w-full"
+            />
+          </div>
+        )}
+
+        {/* Pattern color */}
+        {pattern !== 'none' && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Color</p>
+            <div className="flex flex-wrap gap-1.5">
+              {PATTERN_COLORS.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => onPatternColorChange(c.id)}
+                  className={`w-6 h-6 rounded-full border-2 transition-all ${
+                    patternColor === c.id
+                      ? 'border-primary ring-2 ring-primary/20 scale-110'
+                      : 'border-border hover:border-muted-foreground/40'
+                  }`}
+                  style={{
+                    backgroundColor: c.color || 'transparent',
+                    backgroundImage: c.id === '' ? 'linear-gradient(135deg, #ddd 25%, #999 50%, #ddd 75%)' : undefined,
+                  }}
+                  aria-label={c.id === '' ? 'Auto color' : c.color}
+                  title={c.id === '' ? 'Auto (theme default)' : c.color}
+                />
+              ))}
             </div>
           </div>
         )}

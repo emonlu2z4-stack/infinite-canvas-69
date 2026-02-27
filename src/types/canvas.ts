@@ -81,6 +81,8 @@ export interface CanvasSettings {
   canvasTheme: CanvasTheme;
   pattern: CanvasPattern;
   patternSpacing: number;
+  patternOpacity: number;
+  patternColor: string;
 }
 
 export const CANVAS_THEME_COLORS: Record<CanvasTheme, { bg: string; gridColor: string }> = {

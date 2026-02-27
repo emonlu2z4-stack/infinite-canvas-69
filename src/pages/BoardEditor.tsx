@@ -39,6 +39,8 @@ const BoardEditor = () => {
   const [canvasTheme, setCanvasTheme] = useState<CanvasTheme>('light');
   const [canvasPattern, setCanvasPattern] = useState<CanvasPattern>('grid');
   const [patternSpacing, setPatternSpacing] = useState(40);
+  const [patternOpacity, setPatternOpacity] = useState(1);
+  const [patternColor, setPatternColor] = useState('');
   const [loaded, setLoaded] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,6 +58,8 @@ const BoardEditor = () => {
         setCanvasTheme(board.settings.canvasTheme);
         setCanvasPattern(board.settings.pattern);
         if (board.settings.patternSpacing) setPatternSpacing(board.settings.patternSpacing);
+        if (board.settings.patternOpacity !== undefined) setPatternOpacity(board.settings.patternOpacity);
+        if (board.settings.patternColor) setPatternColor(board.settings.patternColor);
       }
       // Trigger entrance animation for template-loaded boards
       if (board.elements.length > 0) {
@@ -74,14 +78,14 @@ const BoardEditor = () => {
       if (board) {
         board.elements = elements;
         board.camera = camera;
-        board.settings = { canvasTheme, pattern: canvasPattern, patternSpacing };
+        board.settings = { canvasTheme, pattern: canvasPattern, patternSpacing, patternOpacity, patternColor };
         const thumb = generateThumbnail(elements);
         if (thumb) board.meta.thumbnail = thumb;
         saveBoard(board);
       }
     }, 1000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-  }, [elements, camera, loaded, id, canvasTheme, canvasPattern, patternSpacing]);
+  }, [elements, camera, loaded, id, canvasTheme, canvasPattern, patternSpacing, patternOpacity, patternColor]);
 
   const handleZoomIn = useCallback(() => zoom(-1, window.innerWidth / 2, window.innerHeight / 2), [zoom]);
   const handleZoomOut = useCallback(() => zoom(1, window.innerWidth / 2, window.innerHeight / 2), [zoom]);
@@ -200,9 +204,13 @@ const BoardEditor = () => {
           canvasTheme={canvasTheme}
           pattern={canvasPattern}
           patternSpacing={patternSpacing}
+          patternOpacity={patternOpacity}
+          patternColor={patternColor}
           onThemeChange={setCanvasTheme}
           onPatternChange={setCanvasPattern}
           onPatternSpacingChange={setPatternSpacing}
+          onPatternOpacityChange={setPatternOpacity}
+          onPatternColorChange={setPatternColor}
         />
         <ThemeToggle className="bg-toolbar border border-toolbar-border text-toolbar-foreground hover:bg-toolbar-hover toolbar-shadow" />
         <Tooltip>
@@ -276,6 +284,8 @@ const BoardEditor = () => {
         canvasTheme={canvasTheme}
         pattern={canvasPattern}
         patternSpacing={patternSpacing}
+        patternOpacity={patternOpacity}
+        patternColor={patternColor}
       />
       {textInputPos && (
         <TextInput
