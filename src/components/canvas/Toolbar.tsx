@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Pencil, Highlighter, Eraser, Square, Circle,
   ArrowRight, Minus, Type, StickyNote, MousePointer2,
-  Undo2, Redo2, ZoomIn, ZoomOut, Maximize, ImagePlus
+  Undo2, Redo2, ZoomIn, ZoomOut, ImagePlus
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
@@ -18,6 +18,10 @@ interface ToolbarProps {
   onColorChange: (color: string) => void;
   brushSize: number;
   onBrushSizeChange: (size: number) => void;
+  fillColor: string;
+  onFillColorChange: (color: string) => void;
+  borderRadius: number;
+  onBorderRadiusChange: (radius: number) => void;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
@@ -43,13 +47,19 @@ const tools: { id: Tool; icon: React.ElementType; label: string; shortcut: strin
   { id: 'image', icon: ImagePlus, label: 'Image', shortcut: 'I' },
 ];
 
+const FILL_COLORS = ['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff', '#000000'];
+
 export default function Toolbar({
   activeTool, onToolChange, color, onColorChange,
   brushSize, onBrushSizeChange,
+  fillColor, onFillColorChange,
+  borderRadius, onBorderRadiusChange,
   onUndo, onRedo, canUndo, canRedo,
   zoom, onZoomIn, onZoomOut, onResetZoom,
   onImageImport,
 }: ToolbarProps) {
+  const isShapeTool = ['rectangle', 'circle', 'arrow', 'line'].includes(activeTool);
+
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-toolbar border border-toolbar-border rounded-xl px-2 py-1.5 toolbar-shadow max-w-[calc(100vw-2rem)] overflow-x-auto scrollbar-none">
       {/* Drawing tools */}
@@ -100,6 +110,68 @@ export default function Toolbar({
           </div>
         </PopoverContent>
       </Popover>
+
+      {/* Fill color (shapes only) */}
+      {isShapeTool && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="p-1.5 rounded-lg hover:bg-toolbar-hover transition-colors">
+              <div
+                className="w-5 h-5 rounded border-2 border-toolbar-border relative"
+                style={{ backgroundColor: fillColor || 'transparent' }}
+              >
+                {!fillColor && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-[1px] h-full bg-destructive rotate-45 absolute" />
+                  </div>
+                )}
+              </div>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" side="bottom">
+            <p className="text-xs text-muted-foreground mb-2">Fill Color</p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {FILL_COLORS.map(c => (
+                <button
+                  key={c || 'none'}
+                  onClick={() => onFillColorChange(c)}
+                  className={`w-7 h-7 rounded border-2 transition-transform hover:scale-110 relative ${
+                    fillColor === c ? 'border-primary scale-110' : 'border-muted'
+                  }`}
+                  style={{ backgroundColor: c || 'transparent' }}
+                >
+                  {c === '' && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-[1px] h-full bg-destructive rotate-45 absolute" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+
+      {/* Border radius (rectangles only) */}
+      {activeTool === 'rectangle' && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="p-1.5 rounded-lg hover:bg-toolbar-hover transition-colors text-toolbar-foreground text-xs font-medium min-w-[2rem]">
+              R:{borderRadius}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-3" side="bottom">
+            <p className="text-xs text-muted-foreground mb-2">Corner Radius: {borderRadius}px</p>
+            <Slider
+              value={[borderRadius]}
+              onValueChange={([v]) => onBorderRadiusChange(v)}
+              min={0}
+              max={50}
+              step={1}
+            />
+          </PopoverContent>
+        </Popover>
+      )}
 
       {/* Brush size */}
       <Popover>

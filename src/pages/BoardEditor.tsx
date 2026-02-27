@@ -31,7 +31,11 @@ const BoardEditor = () => {
     canUndo, canRedo,
     selectedElementId, setSelectedElementId,
     moveElement, commitMove, deleteSelected, resizeElement,
+    rotateElement, updateElementProperty,
   } = useCanvas();
+
+  const [fillColor, setFillColor] = useState('');
+  const [borderRadius, setBorderRadius] = useState(0);
 
   const [textInputPos, setTextInputPos] = useState<Point | null>(null);
   const [stickyInputPos, setStickyInputPos] = useState<Point | null>(null);
@@ -249,6 +253,10 @@ const BoardEditor = () => {
         onColorChange={setColor}
         brushSize={brushSize}
         onBrushSizeChange={setBrushSize}
+        fillColor={fillColor}
+        onFillColorChange={setFillColor}
+        borderRadius={borderRadius}
+        onBorderRadiusChange={setBorderRadius}
         onUndo={undo}
         onRedo={redo}
         canUndo={canUndo}
@@ -265,6 +273,8 @@ const BoardEditor = () => {
         activeTool={activeTool}
         color={color}
         brushSize={brushSize}
+        fillColor={fillColor}
+        borderRadius={borderRadius}
         camera={camera}
         onAddElement={addElement}
         onEraseAt={eraseAt}
@@ -280,6 +290,7 @@ const BoardEditor = () => {
         onMoveElement={moveElement}
         onCommitMove={commitMove}
         onResizeElement={resizeElement}
+        onRotateElement={rotateElement}
         animation={animation}
         canvasTheme={canvasTheme}
         pattern={canvasPattern}
