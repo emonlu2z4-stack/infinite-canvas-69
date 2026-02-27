@@ -125,6 +125,7 @@ const BoardEditor = () => {
           naturalHeight: img.height,
         };
         addElement(imageEl);
+        triggerEntrance([imageEl.id]);
         // Auto-select the uploaded image and switch to select tool
         setSelectedElementId(imageEl.id);
         setActiveTool('select');
