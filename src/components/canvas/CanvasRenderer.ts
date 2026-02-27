@@ -194,6 +194,54 @@ function drawPattern(ctx: CanvasRenderingContext2D, camera: Camera, width: numbe
     }
   }
 
+  if (pattern === 'cross') {
+    const arm = 4;
+    for (let x = startX; x < endX; x += spacing) {
+      for (let y = startY; y < endY; y += spacing) {
+        ctx.beginPath(); ctx.moveTo(x - arm, y); ctx.lineTo(x + arm, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y - arm); ctx.lineTo(x, y + arm); ctx.stroke();
+      }
+    }
+  }
+
+  if (pattern === 'diamond') {
+    const half = spacing / 2;
+    ctx.lineWidth = 0.7;
+    for (let x = startX; x < endX; x += spacing) {
+      for (let y = startY; y < endY; y += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(x, y - half);
+        ctx.lineTo(x + half, y);
+        ctx.lineTo(x, y + half);
+        ctx.lineTo(x - half, y);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+  }
+
+  if (pattern === 'hex') {
+    const r = spacing / 2;
+    const h = r * Math.sqrt(3);
+    ctx.lineWidth = 0.7;
+    let row = 0;
+    for (let y = startY; y < endY; y += h * 0.75) {
+      const offsetX = (row % 2) * (r * 1.5);
+      for (let x = startX + offsetX; x < endX; x += r * 3) {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i - Math.PI / 6;
+          const px = x + r * Math.cos(angle);
+          const py = y + r * Math.sin(angle);
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      row++;
+    }
+  }
+
   ctx.restore();
 }
 
