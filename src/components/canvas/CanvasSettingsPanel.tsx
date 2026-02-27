@@ -12,9 +12,14 @@ interface CanvasSettingsPanelProps {
 }
 
 const themes: { id: CanvasTheme; bg: string; border: string }[] = [
-  { id: 'light', bg: '#f5f5f7', border: '#d4d4d8' },
-  { id: 'dark', bg: '#1e1e2e', border: '#3f3f50' },
-  { id: 'sepia', bg: '#f0e6d3', border: '#c4a882' },
+  { id: 'light',    bg: '#f5f5f7', border: '#d4d4d8' },
+  { id: 'dark',     bg: '#1e1e2e', border: '#3f3f50' },
+  { id: 'sepia',    bg: '#f0e6d3', border: '#c4a882' },
+  { id: 'midnight', bg: '#0f172a', border: '#334155' },
+  { id: 'sage',     bg: '#e8ede5', border: '#a3b899' },
+  { id: 'rose',     bg: '#f5e6e8', border: '#d4a0a7' },
+  { id: 'ocean',    bg: '#e0edf4', border: '#8bb8d0' },
+  { id: 'slate',    bg: '#e2e4e9', border: '#9ca3af' },
 ];
 
 const patterns: { id: CanvasPattern; label: string }[] = [
@@ -45,7 +50,7 @@ export default function CanvasSettingsPanel({
         {/* Theme swatches */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Theme</p>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {themes.map(t => (
               <button
                 key={t.id}
