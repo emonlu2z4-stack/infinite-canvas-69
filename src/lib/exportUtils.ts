@@ -1,9 +1,23 @@
-import type { CanvasElement, Camera } from '@/types/canvas';
+import type { CanvasElement, Camera, BoardState } from '@/types/canvas';
+
+// Preload all images and wait for them
+function preloadImages(elements: CanvasElement[]): Promise<Map<string, HTMLImageElement>> {
+  const imgElements = elements.filter(el => el.type === 'image') as any[];
+  const map = new Map<string, HTMLImageElement>();
+  return Promise.all(imgElements.map(el => new Promise<void>((resolve) => {
+    const img = new Image();
+    img.onload = () => { map.set(el.src, img); resolve(); };
+    img.onerror = () => resolve();
+    img.src = el.src;
+    if (img.complete) { map.set(el.src, img); resolve(); }
+  }))).then(() => map);
+}
 
 // Re-render elements to a temporary canvas and export
 function renderToCanvas(
   elements: CanvasElement[],
-  padding = 40
+  padding = 40,
+  imageMap?: Map<string, HTMLImageElement>
 ): { canvas: HTMLCanvasElement; width: number; height: number } | null {
   if (elements.length === 0) return null;
 
@@ -52,12 +66,12 @@ function renderToCanvas(
   ctx.translate(-minX + padding, -minY + padding);
 
   // Import the draw function inline to avoid circular deps
-  elements.forEach(el => drawElementExport(ctx, el));
+  elements.forEach(el => drawElementExport(ctx, el, imageMap));
 
   return { canvas, width, height };
 }
 
-function drawElementExport(ctx: CanvasRenderingContext2D, el: CanvasElement) {
+function drawElementExport(ctx: CanvasRenderingContext2D, el: CanvasElement, imageMap?: Map<string, HTMLImageElement>) {
   ctx.save();
 
   if (el.type === 'pen' || el.type === 'highlighter') {
@@ -159,9 +173,8 @@ function drawElementExport(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   }
 
   if (el.type === 'image') {
-    const img = new Image();
-    img.src = el.src;
-    if (img.complete) {
+    const img = imageMap?.get(el.src);
+    if (img) {
       ctx.drawImage(img, el.position.x, el.position.y, el.width, el.height);
     }
   }
@@ -169,8 +182,9 @@ function drawElementExport(ctx: CanvasRenderingContext2D, el: CanvasElement) {
   ctx.restore();
 }
 
-export function exportAsPNG(elements: CanvasElement[], boardName: string) {
-  const result = renderToCanvas(elements);
+export async function exportAsPNG(elements: CanvasElement[], boardName: string) {
+  const imageMap = await preloadImages(elements);
+  const result = renderToCanvas(elements, 40, imageMap);
   if (!result) return;
 
   const link = document.createElement('a');
@@ -179,13 +193,13 @@ export function exportAsPNG(elements: CanvasElement[], boardName: string) {
   link.click();
 }
 
-export function exportAsPDF(elements: CanvasElement[], boardName: string) {
-  const result = renderToCanvas(elements);
+export async function exportAsPDF(elements: CanvasElement[], boardName: string) {
+  const imageMap = await preloadImages(elements);
+  const result = renderToCanvas(elements, 40, imageMap);
   if (!result) return;
 
   const imgData = result.canvas.toDataURL('image/png');
 
-  // Create a simple PDF using a print window
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
@@ -203,6 +217,16 @@ export function exportAsPDF(elements: CanvasElement[], boardName: string) {
   `);
   printWindow.document.close();
   setTimeout(() => printWindow.print(), 300);
+}
+
+export function exportAsJSON(elements: CanvasElement[], boardName: string) {
+  const data = JSON.stringify({ name: boardName, elements, exportedAt: Date.now() }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.download = `${boardName}.json`;
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  URL.revokeObjectURL(link.href);
 }
 
 export function generateThumbnail(elements: CanvasElement[]): string | undefined {
